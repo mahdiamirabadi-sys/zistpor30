@@ -100,6 +100,45 @@ button { -webkit-tap-highlight-color: transparent; }
 .panel p { color: #40584d; }
 .panel hr { border: 0; border-top: 1px solid var(--pz-line); }
 
+.login-contact {
+  margin-top: 24px;
+  padding: 19px 12px 2px;
+  border-top: 1px solid var(--pz-line);
+  text-align: center;
+}
+.panel .login-contact__title {
+  margin: 0 0 4px;
+  color: var(--pz-green-800);
+  font-size: 13px;
+  font-weight: 700;
+}
+.panel .login-contact__name {
+  margin: 0 0 8px;
+  color: var(--pz-green-950);
+  font-size: 17px;
+  font-weight: 800;
+}
+.login-contact__phone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 13px;
+  color: var(--pz-green-800);
+  border: 1px solid var(--pz-line);
+  border-radius: 999px;
+  background: #f6faf7;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  direction: ltr;
+  transition: background .18s ease, border-color .18s ease;
+}
+.login-contact__phone:hover {
+  border-color: #b9d7c5;
+  background: var(--pz-green-100);
+}
+
 .page label {
   display: block;
   margin: 13px 0 7px;

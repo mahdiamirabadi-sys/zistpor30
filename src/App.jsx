@@ -1152,6 +1152,17 @@ export default function App() {
           </button>
 
           {message && <p className="message">{message}</p>}
+
+          {mode === "login" && (
+            <div className="login-contact" aria-label="اطلاعات طراح و پشتیبان سامانه">
+              <p className="login-contact__title">طراح و پشتیبان سامانه پرسمان زیست</p>
+              <p className="login-contact__name">مهدی امیرآبادی</p>
+              <a className="login-contact__phone" href="tel:09304917587" dir="ltr">
+                <span aria-hidden="true">☎</span>
+                09304917587
+              </a>
+            </div>
+          )}
         </section>
 
         <footer>پروژه zistpor30 | پرسمان زیست</footer>
