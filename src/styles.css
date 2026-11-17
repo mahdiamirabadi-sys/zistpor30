@@ -316,3 +316,40 @@ button { -webkit-tap-highlight-color: transparent; }
   .student-access-row > p { flex-basis: 100%; }
   .student-access-row > .student-management-actions { width: 100%; }
 }
+
+
+/* یادآوری روزشمار پایان دسترسی: از ۷ روز پیش از پایان تا آخرین روز */
+.access-countdown {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 2px 0 20px;
+  padding: 14px 17px;
+  border: 1px solid #f1d29b;
+  border-right: 5px solid #d49a39;
+  border-radius: 15px;
+  background: linear-gradient(120deg, #fff9e9, #fffdf7);
+}
+.access-countdown__count {
+  display: flex;
+  flex: 0 0 78px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: #fdf0d5;
+  color: #875213;
+  line-height: 1.45;
+}
+.access-countdown__count strong { font-size: 29px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.access-countdown__count span { font-size: 12px; font-weight: 700; }
+.access-countdown__details { min-width: 0; }
+.panel .access-countdown__title { margin: 0 0 4px; color: #7b490d; font-size: 16px; font-weight: 800; }
+.panel .access-countdown__description { margin: 0; color: #715b38; font-size: 13px; }
+@media (max-width: 480px) {
+  .access-countdown { align-items: flex-start; gap: 11px; padding: 12px; }
+  .access-countdown__count { flex-basis: 66px; }
+  .access-countdown__count strong { font-size: 25px; }
+  .panel .access-countdown__title { font-size: 14px; }
+}

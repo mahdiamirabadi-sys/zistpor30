@@ -356,6 +356,18 @@ function studentAccessState(student, todayISO) {
   return "active";
 }
 
+// روزشمار بر اساس روز تقویمی ایران است؛ در روز پایان، مقدار صفر خواهد بود.
+// استفاده از UTC فقط برای محاسبه فاصله روزهای تقویمی است (بدون خطای ساعت تابستانی).
+function daysUntilAccessEnds(todayISO, accessEndDate) {
+  if (!accessEndDate) return null;
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!datePattern.test(todayISO) || !datePattern.test(String(accessEndDate))) return null;
+  const todayMillis = Date.parse(`${todayISO}T00:00:00Z`);
+  const endMillis = Date.parse(`${accessEndDate}T00:00:00Z`);
+  if (!Number.isFinite(todayMillis) || !Number.isFinite(endMillis)) return null;
+  return Math.round((endMillis - todayMillis) / 86400000);
+}
+
 function StudentAccessEditor({ student, onSave, disabled, todayISO }) {
   const [startText, setStartText] = useState(() => gregorianISOToJalali(student.access_start_date));
   const [endText, setEndText] = useState(() => gregorianISOToJalali(student.access_end_date));
@@ -2045,6 +2057,8 @@ export default function App() {
   }
 
   if (profile.role === "student" && profile.is_approved) {
+    const daysRemaining = daysUntilAccessEnds(todayISO, profile.access_end_date);
+    const showAccessCountdown = daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7;
     const currentQuestion = exerciseQuestions[currentIndex];
     const reviewQuestion = reviewQueue[reviewIndex];
     const currentExamQuestion = examQuestions[examIndex];
@@ -2072,6 +2086,25 @@ export default function App() {
 
         <section className="panel">
           <h2>خوش آمدید، {profile.display_name}</h2>
+
+          {showAccessCountdown && (
+            <aside className="access-countdown" role="status" aria-live="polite">
+              <div className="access-countdown__count" aria-label={daysRemaining === 0 ? "آخرین روز دسترسی" : `${daysRemaining} روز باقی‌مانده`}>
+                <strong>{daysRemaining.toLocaleString("fa-IR")}</strong>
+                <span>{daysRemaining === 0 ? "روز پایانی" : "روز مانده"}</span>
+              </div>
+              <div className="access-countdown__details">
+                <p className="access-countdown__title">
+                  {daysRemaining === 0
+                    ? "امروز آخرین روز دوره دسترسی شماست"
+                    : `${daysRemaining.toLocaleString("fa-IR")} روز تا پایان دوره دسترسی شما باقی مانده است`}
+                </p>
+                <p className="access-countdown__description">
+                  پایان دوره: <b>{gregorianISOToJalali(profile.access_end_date)}</b> — برای تمدید، با دبیر یا پشتیبان سامانه هماهنگ کنید.
+                </p>
+              </div>
+            </aside>
+          )}
 
           {screen === "setup" && (
             <>
