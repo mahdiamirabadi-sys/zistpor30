@@ -721,3 +721,60 @@ button { -webkit-tap-highlight-color: transparent; }
 .student-signup-fields label { min-width: 0; }
 .student-signup-fields input { width: 100%; }
 @media (max-width:600px) { .student-signup-fields { grid-template-columns: 1fr; } }
+
+/* گزارش اشتباه در سؤال؛ دکمه‌های مستقل از متن محافظت‌شده */
+.teacher-tabs { grid-template-columns:repeat(5,minmax(0,1fr)); }
+.student-question-header { display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:16px 0 5px; }
+.student-question-header h3, .student-question-header p { margin:0; }
+.question-issue-control { display:inline-flex;align-items:center; }
+.page .question-issue-trigger { min-height:36px;padding:6px 13px;border-radius:9px;color:#805015;
+  background:#fff8ec;border:1px solid #e8c78e;box-shadow:none;font-size:12px;white-space:nowrap; }
+.page .question-issue-trigger:hover:not(:disabled) { background:#ffefcf;box-shadow:none; }
+.question-issue-sent { display:inline-block;color:#176b43;background:#e9f7ee;padding:5px 10px;
+  border-radius:9px;font-size:12px;font-weight:700; }
+.question-issue-overlay { position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  background:rgba(6,31,22,.66);padding:16px; }
+.question-issue-dialog { width:min(490px,100%);max-height:min(92vh,760px);overflow:auto;background:#fff;border-radius:17px;
+  padding:22px;border:1px solid #d6e4d9;box-shadow:0 20px 70px #071c1447; }
+.question-issue-dialog h3 { margin:0 0 8px; padding:0;border:none;color:#0e5038;font-size:19px; }
+.question-issue-dialog p { font-size:13px;line-height:1.9; }
+.question-issue-dialog .question-issue-code { color:#7b591d;font-weight:700;margin:7px 0; }
+.question-issue-dialog label { margin-top:12px; }
+.question-issue-dialog select,.question-issue-dialog textarea { display:block;width:100%; }
+.question-issue-dialog textarea { resize:vertical;min-height:110px; }
+.question-issue-dialog form>small { display:block;color:#698273;text-align:left;font-size:11px; }
+.question-issue-dialog-actions { display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:17px; }
+.page .question-issue-cancel { color:#415c4b;background:#eff5f1;border-color:#d3e1d8;box-shadow:none; }
+.question-issue-error { padding:10px;border-radius:9px;color:#a12e24!important;background:#fff1ef;border:1px solid #f0c5bf;overflow-wrap:anywhere; }
+.teacher-issues-topline { display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap; }
+.teacher-issues-topline h3 { margin:0 0 4px; }
+.teacher-issues-topline p { margin:0;color:#6a7c71;font-size:13px; }
+.teacher-issues-count { display:inline-block;background:#eaf5ee;border-radius:10px;padding:8px 12px;
+  font-size:13px;color:#24543a;font-weight:700; }
+.teacher-issues-filters { display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px; }
+.page .teacher-issues-filters button { min-height:36px;font-size:12px;padding:6px 10px;color:#255840;
+  background:#f4f8f5;border:1px solid #cdded3;box-shadow:none; }
+.page .teacher-issues-filters button.is-active { color:white;background:#167451;border-color:#167451; }
+.teacher-issues-empty { padding:18px;color:#6a7c71;border:1px dashed #cdded3;border-radius:12px; }
+.teacher-issue-card { padding:17px;border:1px solid #dde9df;border-radius:14px;background:#fff;margin-bottom:13px; }
+.teacher-issue-title { display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap; }
+.teacher-issue-title>div { display:flex;align-items:center;gap:9px;flex-wrap:wrap; }
+.teacher-issue-title small { color:#7a867c;font-size:11px; }
+.teacher-issue-status { border-radius:8px;padding:3px 9px;font-size:11px;background:#f1f3f3;color:#52615a; }
+.teacher-issue-status--new { background:#fff0dc;color:#85510e; }
+.teacher-issue-status--reviewing { background:#e5effe;color:#29578e; }
+.teacher-issue-status--resolved { background:#e2f5e9;color:#176b43; }
+.teacher-issue-status--dismissed { background:#f0f0f0;color:#58665d; }
+.teacher-issue-meta { color:#5c6b60;font-size:12px;margin:5px 0;overflow-wrap:anywhere; }
+.teacher-issue-statement,.teacher-issue-description { margin:10px 0;padding:11px 13px;border-radius:9px;
+  border:1px solid #e1ebe5;background:#f8fbf9;font-size:13px;overflow-wrap:anywhere; }
+.teacher-issue-description { background:#fffaf0;border-color:#efe1bd; }
+.teacher-issue-statement p,.teacher-issue-description p { margin:5px 0 0;white-space:pre-wrap; }
+.teacher-issue-card form { display:grid;gap:6px; }
+.teacher-issue-card form label { margin:8px 0 0;font-size:12px; }
+.teacher-issue-card form select { max-width:300px; }
+.teacher-issue-card form textarea { width:100%;resize:vertical; }
+.teacher-issue-actions { display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:9px; }
+.teacher-issue-actions span { font-size:12px;color:#176b43; }
+@media(max-width:550px) { .teacher-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .question-issue-dialog { padding:16px; } }

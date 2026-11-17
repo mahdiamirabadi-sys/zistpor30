@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import TeacherAnalytics from "./TeacherAnalytics";
 import StudentReport from "./StudentReport";
+import { QuestionIssueButton, TeacherQuestionIssues } from "./QuestionIssues";
 
 const styles = {
   select: {
@@ -1756,7 +1757,7 @@ export default function App() {
 
           <div className="teacher-tabs" role="tablist" aria-label="بخش‌های پنل دبیر"
             onKeyDown={event => {
-              const tabs = ["dashboard", "questions", "students", "reports"];
+              const tabs = ["dashboard", "questions", "students", "reports", "issues"];
               const currentIndex = tabs.indexOf(teacherTab);
               let nextIndex;
               if (event.key === "ArrowLeft") nextIndex = (currentIndex + 1) % tabs.length;
@@ -1773,7 +1774,8 @@ export default function App() {
               ["dashboard", "داشبورد"],
               ["questions", "سؤال‌ها"],
               ["students", "دانش‌آموزان"],
-              ["reports", "گزارش‌ها"]
+              ["reports", "گزارش‌ها"],
+              ["issues", "گزارش اشتباه"]
             ].map(([key, label]) => (
               <button type="button" role="tab" id={`teacher-tab-${key}`} key={key}
                 data-teacher-tab={key}
@@ -1813,6 +1815,7 @@ export default function App() {
                   <button type="button" onClick={() => setTeacherTab("questions")}>ثبت و مدیریت سؤال‌ها</button>
                   <button type="button" onClick={() => setTeacherTab("students")}>مدیریت دانش‌آموزان</button>
                   <button type="button" onClick={() => setTeacherTab("reports")}>گزارش‌ها و پرونده تحلیلی</button>
+                  <button type="button" onClick={() => setTeacherTab("issues")}>گزارش اشتباهات سؤالات</button>
                 </div>
               </div>
               <button type="button" className="teacher-refresh-button" disabled={questionsLoading || attemptsLoading || examSessionsLoading}
@@ -2244,6 +2247,12 @@ export default function App() {
             </section>
           )}
 
+          {teacherTab === "issues" && (
+            <section className="teacher-tab-content" id="teacher-panel-issues" role="tabpanel" aria-labelledby="teacher-tab-issues" tabIndex={0}>
+              <TeacherQuestionIssues />
+            </section>
+          )}
+
           {teacherTab === "students" && (
             <section className="teacher-tab-content" id="teacher-panel-students" role="tabpanel" aria-labelledby="teacher-tab-students" tabIndex={0}>
               <div className="teacher-section-heading">
@@ -2629,9 +2638,10 @@ export default function App() {
 
           {screen === "exercise" && currentQuestion && (
             <>
-              <h3>
-                سؤال {currentIndex + 1} از {exerciseQuestions.length}
-              </h3>
+              <div className="student-question-header">
+                <h3>سؤال {currentIndex + 1} از {exerciseQuestions.length}</h3>
+                <QuestionIssueButton key={`practice-${currentQuestion.id}`} question={currentQuestion} />
+              </div>
 
               <ProtectedQuestionText style={styles.question}>
                 {currentQuestion.statement}
@@ -2742,7 +2752,10 @@ export default function App() {
 
           {screen === "exam" && currentExamQuestion && (
             <>
-              <h3>آزمون | سؤال {examIndex + 1} از {examQuestions.length}</h3>
+              <div className="student-question-header">
+                <h3>آزمون | سؤال {examIndex + 1} از {examQuestions.length}</h3>
+                <QuestionIssueButton key={`exam-${currentExamQuestion.id}`} question={currentExamQuestion} />
+              </div>
               <p>
                 پاسخ‌های ثبت‌شده: {Object.keys(examAnswers).length} از {examQuestions.length}
               </p>
@@ -2837,7 +2850,12 @@ export default function App() {
 
               <h4>بررسی پاسخ‌ها</h4>
               {(examResult.questions || []).map((item, index) => (
-                <ProtectedQuestionText key={item.id} style={{ ...styles.question, marginTop: "12px" }}>
+                <React.Fragment key={item.id}>
+                  <div className="student-question-header">
+                    <span>سؤال {index + 1} | بررسی پاسخ</span>
+                    <QuestionIssueButton question={item} />
+                  </div>
+                  <ProtectedQuestionText style={{ ...styles.question, marginTop: "12px" }}>
                   <p><b>سؤال {index + 1}:</b> {item.statement}</p>
                   <p>
                     <b>پاسخ شما:</b>{" "}
@@ -2855,7 +2873,8 @@ export default function App() {
                   {item.explanation && (
                     <p><b>توضیح:</b> {item.explanation}</p>
                   )}
-                </ProtectedQuestionText>
+                  </ProtectedQuestionText>
+                </React.Fragment>
               ))}
 
               <button
@@ -2890,7 +2909,10 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  <p>سؤال {reviewIndex + 1} از {reviewQueue.length} | باقی‌مانده برای اصلاح: {reviewRemaining.length}</p>
+                  <div className="student-question-header">
+                    <p>سؤال {reviewIndex + 1} از {reviewQueue.length} | باقی‌مانده برای اصلاح: {reviewRemaining.length}</p>
+                    {reviewQuestion && <QuestionIssueButton key={`review-${reviewQuestion.id}`} question={reviewQuestion} />}
+                  </div>
 
                   <ProtectedQuestionText style={styles.question}>
                     {reviewQuestion.statement}
