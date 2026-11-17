@@ -778,3 +778,426 @@ button { -webkit-tap-highlight-color: transparent; }
 .teacher-issue-actions span { font-size:12px;color:#176b43; }
 @media(max-width:550px) { .teacher-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .question-issue-dialog { padding:16px; } }
+
+/* ====================================================================
+   پرسمان زیست | بازطراحی بصری یکپارچه ۱۴۰۵
+   لایهٔ صرفاً نمایشی: هیچ قانون ثبت پاسخ، دسترسی یا دیتابیس تغییر نمی‌کند.
+   ==================================================================== */
+:root {
+  --pz-green-950: #092f24;
+  --pz-green-900: #0c4936;
+  --pz-green-800: #145c43;
+  --pz-green-700: #167957;
+  --pz-green-100: #e7f4ec;
+  --pz-ink: #152d23;
+  --pz-muted: #64776b;
+  --pz-line: #dce9df;
+  --pz-shadow: 0 16px 46px rgba(15, 66, 43, .065);
+}
+html { scroll-behavior: smooth; }
+body {
+  background:
+    radial-gradient(ellipse 650px 420px at 100% 0%, rgba(45,157,105,.11), transparent 80%),
+    radial-gradient(ellipse 650px 460px at 0% 40%, rgba(193,213,151,.12), transparent 82%),
+    #f5f8f5;
+}
+.page { width: min(1200px, 100%); }
+.page > header {
+  min-height: 108px;
+  padding: 21px clamp(18px,3vw,30px);
+  border-radius: 23px;
+  background: linear-gradient(115deg, #093c2c, #0d6044 66%, #1a8a60);
+  box-shadow: 0 15px 35px rgba(15,90,58,.13);
+}
+.page > header h1 { letter-spacing: -.5px; font-size: clamp(22px,2.4vw,29px); }
+.page > header p { color: #d6f1e2; font-size: 13px; }
+.page > header .mark {
+  border-radius: 17px;
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+}
+.panel { border-radius: 23px; border-color: #e0eae3; box-shadow: var(--pz-shadow); }
+.page button:focus-visible, .page input:focus-visible, .page select:focus-visible,
+.page textarea:focus-visible, .page summary:focus-visible {
+  outline: 3px solid #86bd9e;
+  outline-offset: 3px;
+}
+.page button { transition: background .18s, border-color .18s, transform .18s, box-shadow .18s; }
+.page button:hover:not(:disabled) { transform: translateY(-1px); }
+.interface-icon { flex-shrink: 0; vertical-align: middle; }
+.sr-only {
+  position:absolute !important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+
+/* ورود به سامانه: کارت مرکزی با خوانایی بهتر */
+.page--auth { width: min(830px, 100%); }
+.page--auth > header { margin-top: clamp(8px,2vw,24px); }
+.page--auth .auth-panel {
+  position:relative;
+  width:min(610px,100%);
+  margin: -3px auto 0;
+  padding: clamp(23px,4vw,42px);
+  overflow:hidden;
+}
+.auth-intro { margin-bottom:12px; }
+.auth-eyebrow { color:#21805b;font-size:12px;font-weight:800;letter-spacing:.2px; }
+.auth-panel h2 { font-size:24px; margin-bottom:18px; }
+.auth-panel form>button[type="submit"], .auth-panel form>button:not([type]) {
+  display:block;width:100%;margin:20px 0 0;min-height:48px;
+}
+.auth-panel form input { display:block;width:100%; }
+.auth-panel .student-signup-fields { margin-top:15px; }
+.page--auth footer { opacity:.8; }
+
+/* پنل دبیر: هدر مستقل + منوی کناری روی رایانه */
+.page--teacher { width:min(1510px,100%); }
+.page--teacher .teacher-top-header { margin-bottom:22px; }
+.page--teacher .teacher-panel {
+  display:grid;
+  grid-template-columns:225px minmax(0,1fr);
+  column-gap:24px;
+  row-gap:18px;
+  align-items:start;
+  padding:clamp(15px,2.2vw,28px);
+  overflow:visible;
+  background:#fff;
+}
+.teacher-panel-heading {
+  grid-column:1/-1;
+  margin:0;
+  padding:0 2px 19px;
+  border-bottom:1px solid #e5eee7;
+}
+.teacher-eyebrow { display:block;color:#258461;font-size:12px;font-weight:800;margin-bottom:3px; }
+.teacher-panel-heading h2 { font-size:clamp(19px,2.2vw,25px); }
+.page .teacher-panel-logout { display:flex;align-items:center;justify-content:center;min-width:130px; }
+.page--teacher .teacher-tabs {
+  position:sticky;
+  top:18px;
+  grid-column:1;
+  grid-row:2;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:12px;
+  background:linear-gradient(180deg,#f1f8f3,#f8fbf8);
+  border:1px solid #e1eee5;
+  border-radius:17px;
+  box-shadow:none;
+}
+.page--teacher .teacher-tab {
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  padding:11px 14px;
+  min-height:49px;
+  font-size:13px;
+  text-align:right;
+  border-radius:11px;
+  white-space:normal;
+}
+.page--teacher .teacher-tab .interface-icon { opacity:.8; }
+.page--teacher .teacher-tab.is-active {
+  color:#fff;
+  background:linear-gradient(115deg,#126a49,#16845a);
+  box-shadow:0 6px 16px rgba(22,116,81,.14);
+}
+.page--teacher .teacher-tab.is-active .interface-icon { opacity:1; }
+.page--teacher .teacher-tab-content {
+  grid-column:2;
+  grid-row:2;
+  min-width:0;
+  width:100%;
+  padding:0 1px 18px;
+  overflow-wrap:break-word;
+}
+.page--teacher .teacher-panel-message { grid-column:1/-1; }
+.teacher-panel .teacher-section-heading {
+  border-bottom:0;
+  padding:0 0 13px;
+  margin:0 0 14px;
+}
+.teacher-panel .teacher-section-heading h3 { color:#103d2c; font-size:clamp(19px,2vw,24px); }
+.teacher-panel .teacher-section-heading p { color:#63766a; }
+.teacher-overview-grid { grid-template-columns:repeat(4,minmax(0,1fr));gap:12px; }
+.teacher-overview-card {
+  position:relative;
+  overflow:hidden;
+  min-height:158px;
+  border-radius:17px;
+  border:1px solid #dbeae1;
+  padding:21px 18px;
+  background:linear-gradient(145deg,#fff 55%,#f3faf5);
+  box-shadow:0 6px 18px rgba(16,73,43,.035);
+}
+.teacher-overview-card::before {
+  content:"";position:absolute;inset:0 auto 0 0;width:4px;
+  background:linear-gradient(#5bbb86,#19764e);
+}
+.teacher-overview-card:nth-child(2)::before { background:linear-gradient(#7aacc8,#447f9e); }
+.teacher-overview-card:nth-child(3)::before { background:linear-gradient(#9ec6a0,#357d60); }
+.teacher-overview-card:nth-child(4)::before { background:linear-gradient(#ecc07b,#c08d3f); }
+.teacher-overview-card strong { color:#105539;font-size:clamp(25px,2.7vw,36px);line-height:1.2; }
+.teacher-overview-actions { margin-top:18px;padding:19px;background:#f8fbf8;border-radius:17px; }
+.teacher-overview-actions > div { display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }
+.page--teacher .teacher-overview-actions button { min-width:0;min-height:44px; }
+.teacher-panel .teacher-student-identity { min-width:0; }
+.teacher-panel .student-access-row { background:#fff;border-color:#e0eae3;box-shadow:0 4px 15px rgba(15,66,43,.025); }
+.teacher-legacy-reports, .teacher-issue-card { border-radius:15px; }
+.page--teacher .analytics-dashboard { margin:12px 0 22px; border-radius:17px; }
+.page--teacher .analytics-body { min-width:0; }
+.page--teacher .analytics-stats { grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); }
+.page--teacher .analytics-learning-overview { grid-template-columns:repeat(auto-fit,minmax(275px,1fr)); }
+.page--teacher .analytics-scroll-table { border:1px solid #e1ebe4;border-radius:12px; }
+.page--teacher .analytics-scroll-table table { margin:0; }
+
+/* پنل دانش‌آموز: سلام شخصی، حالت‌های فعالیت و فرم انتخاب محدوده */
+.page--student { width:min(1210px,100%); }
+.page--student .student-panel { min-height:480px;padding:clamp(17px,2.8vw,32px); }
+.page--student .student-header__logout { margin-right:auto; }
+.student-welcome {
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:clamp(20px,3vw,30px);
+  margin-bottom:15px;
+  overflow:hidden;
+  color:#fff;
+  border-radius:19px;
+  background:linear-gradient(120deg,#104d39 5%,#187e55 100%);
+  box-shadow:0 12px 27px rgba(9,87,52,.1);
+}
+.student-welcome::after {
+  content:"";position:absolute;inset:auto -50px -140px auto;
+  width:240px;height:240px;border:1px solid rgba(255,255,255,.18);border-radius:50%;
+}
+.student-welcome__eyebrow { display:block;color:#b9eacb;font-weight:700;font-size:12px;margin-bottom:4px; }
+.student-panel .student-welcome h2 {
+  position:relative;margin:0 0 4px;color:#fff;
+  font-size:clamp(20px,3vw,30px);
+}
+.student-panel .student-welcome p {position:relative;margin:0;color:#e2f5e8;font-size:13px;}
+.student-welcome__ornament {
+  flex:0 0 75px;display:grid;place-items:center;
+  width:75px;height:75px;
+  color:#e5f9e9;
+  background:rgba(255,255,255,.13);
+  border:1px solid rgba(255,255,255,.23);
+  border-radius:20px;
+}
+.student-panel .student-report-nav {
+  margin:15px 0 21px;padding:6px;
+  border-radius:15px;
+  background:#f2f7f3;
+  border:1px solid #e0eae2;
+}
+.page--student .student-report-nav button {
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:14px;letter-spacing:-.2px;min-height:50px;
+}
+.page--student .student-report-nav button.is-active { box-shadow:0 5px 12px rgba(9,76,39,.12); }
+.student-identity-details {
+  margin:12px 0 17px;
+  border-radius:13px;
+  background:#fcfefd;
+}
+.student-identity-details>summary { font-size:13px;padding:12px 17px; }
+.student-setup-layout { display:grid;grid-template-columns: minmax(260px,.84fr) minmax(0,1.5fr);gap:16px;align-items:start; }
+.student-setup-card {
+  min-width:0;
+  padding:clamp(17px,2.2vw,25px);
+  border:1px solid #dfeae2;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 6px 22px rgba(13,66,36,.035);
+}
+.student-setup-title { display:flex;align-items:flex-start;gap:11px;margin-bottom:19px; }
+.student-step {
+  flex-shrink:0;
+  width:39px;height:39px;display:grid;place-items:center;
+  background:#e4f4e9;color:#176748;border-radius:12px;
+  font-weight:900;font-size:16px;
+}
+.student-panel .student-setup-title h3 {
+  padding:0;margin:0 0 2px;border:0;color:#153f2e;
+  font-size:clamp(16px,1.8vw,19px);
+}
+.student-panel .student-setup-title p { margin:0;font-size:12px;color:#718378; }
+.student-mode-options { margin:0;padding:0;border:0;display:grid;gap:11px; }
+.page--student .student-mode-choice {
+  display:flex;align-items:center;gap:11px;
+  margin:0;padding:16px 13px;
+  border:1px solid #dae6de;border-radius:14px;
+  background:#f9fbf9;cursor:pointer;
+  transition:background .18s,border-color .18s,box-shadow .18s;
+}
+.page--student .student-mode-choice.is-selected {
+  background:#effaf2;border-color:#64b78a;box-shadow:0 0 0 3px rgba(54,149,95,.08);
+}
+.student-mode-choice input { flex:0 0 auto;accent-color:#147650; }
+.student-mode-choice__icon {
+  width:38px;height:38px;flex-shrink:0;display:grid;place-items:center;
+  border-radius:11px;background:#e3f1e8;color:#277052;
+}
+.student-mode-choice.is-selected .student-mode-choice__icon { color:#fff;background:#167451; }
+.student-mode-choice__content { flex:1;min-width:0;display:flex;flex-direction:column;gap:3px; }
+.student-mode-choice__content strong { font-size:14px;color:#1a4f37; }
+.student-mode-choice__content small { font-size:11px;font-weight:400;line-height:1.75;color:#617469; }
+.student-filter-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:15px;row-gap:6px; }
+.page--student .student-filter-grid label { margin:0;min-width:0;font-size:12px; }
+.page--student .student-filter-grid select { display:block;width:100%;margin-top:6px;min-height:47px;background:#fcfefd; }
+.student-start-panel {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 145px;
+  align-items:end;
+  gap:14px;
+  padding:17px;
+  margin-top:18px;
+  border-radius:14px;
+  border:1px solid #d9e7df;
+  background:linear-gradient(140deg,#f2f9f4,#f8fcf9);
+}
+.student-start-panel__details { display:flex;flex-direction:column;gap:3px; }
+.student-start-panel__details span {color:#627c6b;font-size:12px;}
+.student-start-panel__details strong {color:#11583a;font-size:22px;line-height:1.35;}
+.student-start-panel__details small {font-size:11px;color:#718378;line-height:1.7;}
+.page--student .student-count-choice {margin:0;font-size:12px;}
+.page--student .student-count-choice input {display:block;width:100%;margin-top:6px;min-height:48px;}
+.page--student .student-start-button {
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  grid-column:1/-1;min-height:52px;font-size:15px;margin:0;
+  border-radius:12px;
+  box-shadow:0 8px 18px rgba(13,99,61,.13);
+}
+
+/* تمرین و آزمون: یک کارت سؤال، پیشرفت واضح و هدف لمس بزرگ */
+.page--student .student-panel--exercise,
+.page--student .student-panel--exam,
+.page--student .student-panel--review { max-width:920px;margin-inline:auto;width:100%; }
+.page--student .student-panel--exercise .student-question-header,
+.page--student .student-panel--exam .student-question-header,
+.page--student .student-panel--review .student-question-header { margin:8px 0 14px; }
+.student-panel .student-question-header h3 {
+  color:#114f35;font-size:clamp(16px,2.4vw,22px);
+  padding:0;border:0;margin:0;
+}
+.student-quiz-progress { display:flex;align-items:center;gap:13px;margin:0 0 18px; }
+.student-quiz-progress progress {
+  flex:1;height:9px;appearance:none;-webkit-appearance:none;
+  border:0;border-radius:999px;overflow:hidden;background:#e4eee8;
+}
+.student-quiz-progress progress::-webkit-progress-bar { background:#e4eee8;border-radius:999px; }
+.student-quiz-progress progress::-webkit-progress-value { background:linear-gradient(90deg,#42a775,#12754d);border-radius:999px; }
+.student-quiz-progress progress::-moz-progress-bar { background:#24865d;border-radius:999px; }
+.student-quiz-progress span {font-size:12px;min-width:40px;color:#226545;font-weight:800;}
+.page--student .student-protected-question {
+  position:relative;min-height:145px;
+  display:block;
+  color:#183e2b;
+  overflow-wrap:anywhere;
+}
+.page--student .student-panel--exercise>.student-protected-question:first-of-type,
+.page--student .student-panel--exam>.student-protected-question:first-of-type { border-right:4px solid #3aab73; }
+.page--student .student-panel--exercise>p,
+.page--student .student-panel--exam>p,
+.page--student .student-panel--review>p { font-size:14px; }
+.page--student .student-answer-button {
+  min-width:175px;min-height:57px;padding:12px 26px;
+  margin:6px 8px 6px 0 !important;
+  font-size:17px;border-radius:13px;
+  box-shadow:0 7px 16px rgba(17,89,57,.1);
+}
+.page--student .student-answer-button--false {box-shadow:0 7px 16px rgba(140,35,35,.09);}
+.page--student .student-activity-exit {margin:0 0 15px!important;}
+.page--student .student-activity-exit button {min-height:41px;font-size:12px;border-radius:10px;}
+.page--student .question-issue-trigger {font-size:12px;}
+.page--student .student-panel--summary,
+.page--student .student-panel--exam-summary {max-width:1000px;margin-inline:auto;}
+.page--student .student-panel--summary>h3,
+.page--student .student-panel--exam-summary>h3 {font-size:23px;color:#125b3c;}
+
+/* کارنامه‌ها، جدول‌ها و گزارش‌های قدیمی: هماهنگ با زبان طراحی جدید */
+.page--student .student-report { margin:10px 0 0;border-radius:17px;border-color:#e0ebe3; }
+.page--student .sr-heading { padding:23px 25px; }
+.page--student .sr-panel, .page--teacher .analytics-chart-card,
+.page--teacher .analytics-analysis, .page--teacher .analytics-history {
+  border-radius:15px;box-shadow:0 3px 10px rgba(13,66,36,.025);
+}
+.page--student .sr-stat {border-radius:14px;min-height:117px;}
+.page--student .sr-panel .sr-badge {max-width:100%;}
+.page--teacher .teacher-issue-card {box-shadow:0 4px 15px rgba(15,66,43,.035);}
+
+@media(max-width:1200px) {
+  .page--teacher .teacher-panel {grid-template-columns:194px minmax(0,1fr);column-gap:18px;}
+  .teacher-overview-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:1020px) {
+  .page--teacher .teacher-panel {display:block;overflow-x:auto;}
+  .page--teacher .teacher-panel-heading {margin-bottom:14px;}
+  .page--teacher .teacher-tabs {
+    position:static;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+    margin:0 0 20px;padding:7px;gap:5px;
+  }
+  .page--teacher .teacher-tab {justify-content:center;flex-wrap:wrap;gap:6px;text-align:center;font-size:12px;padding:9px 4px;}
+  .page--teacher .teacher-tab .interface-icon {width:18px;height:18px;}
+  .page--teacher .teacher-tab-content {width:100%;}
+  .student-setup-layout {grid-template-columns:1fr;}
+  .student-mode-options {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:680px) {
+  .page {padding:12px;}
+  .page > header {min-height:92px;padding:17px;border-radius:19px;gap:12px;}
+  .page > header .mark {width:54px;height:54px;flex-basis:54px;}
+  .page--teacher .teacher-panel {padding:16px;}
+  .page--teacher .teacher-tabs {
+    display:flex;overflow-x:auto;overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+  }
+  .page--teacher .teacher-tab {flex:0 0 120px;scroll-snap-align:start;flex-wrap:nowrap;justify-content:flex-start;padding:9px 10px;}
+  .teacher-overview-grid {gap:9px;}
+  .teacher-overview-card {padding:16px 12px;min-height:137px;}
+  .teacher-overview-actions>div {grid-template-columns:1fr;}
+  .page--student .student-panel {padding:14px;min-height:400px;}
+  .student-welcome {padding:19px;}
+  .student-welcome__ornament {width:52px;height:52px;flex-basis:52px;border-radius:14px;}
+  .student-welcome__ornament .interface-icon {width:29px;height:29px;}
+  .student-mode-options {grid-template-columns:1fr;}
+  .student-filter-grid {grid-template-columns:1fr;gap:7px;}
+  .student-start-panel {grid-template-columns:1fr;gap:11px;}
+  .student-start-panel__details {align-items:flex-start;}
+  .page--student .student-start-panel .student-count-choice {width:100%;}
+  .page--student .student-report-nav button {font-size:12px;min-height:47px;}
+  .student-panel .student-question-header {align-items:flex-start;}
+  .page--student .student-answer-button {min-width:calc(50% - 14px);margin:5px 5px 5px 0!important;padding:12px 8px;}
+  .page--auth .auth-panel {padding:22px;}
+}
+@media(max-width:400px) {
+  .student-welcome__ornament {display:none;}
+  .teacher-overview-grid {grid-template-columns:1fr;}
+  .page--teacher .teacher-tab {flex-basis:110px;}
+  .page--student .student-answer-button {width:100%;margin:5px 0!important;}
+}
+@media (prefers-reduced-motion: reduce) {
+  html {scroll-behavior:auto;}
+  .page button, .page .student-mode-choice {transition:none;}
+}
+
+/* حفظ چاپ تمیز کارنامه پس از اعمال لایهٔ بازطراحی */
+@media print {
+  .page--student .student-report {
+    position:absolute;top:0;right:0;width:100%;margin:0!important;
+    overflow:visible;border:0!important;border-radius:0!important;
+    box-shadow:none;background:#fff;
+  }
+  .page--student .sr-heading {background:#ecf5ef!important;padding:12px 0;}
+}

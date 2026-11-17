@@ -5,6 +5,23 @@ import TeacherAnalytics from "./TeacherAnalytics";
 import StudentReport from "./StudentReport";
 import { QuestionIssueButton, TeacherQuestionIssues } from "./QuestionIssues";
 
+// آیکون‌های مستقل از کتابخانه؛ فقط برای بهبود ظاهر رابط کاربری.
+function InterfaceIcon({ name, size = 19 }) {
+  const paths = {
+    dashboard: <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
+    questions: <><path d="M4 5.5C6.8 4 9.7 4.4 12 6v14c-2.3-1.6-5.2-2-8-.5z"/><path d="M20 5.5c-2.8-1.5-5.7-1.1-8 .5v14c2.3-1.6 5.2-2 8-.5z"/></>,
+    students: <><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2z"/><path d="M17 6a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v1"/></>,
+    reports: <><path d="M4 20V11M10 20V4M16 20v-8M22 20v-5M2 21h21"/></>,
+    issues: <><path d="M12 3 2.5 20h19z"/><path d="M12 9v5M12 17h.01"/></>,
+    home: <><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/></>,
+    chart: <><path d="M3 3v18h18"/><path d="m7 16 4-5 3 2 5-7"/></>,
+    arrow: <><path d="M18 12H6M11 7l-5 5 5 5"/></>,
+    check: <><path d="m5 12 4 4L19 6"/></>,
+    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>
+  };
+  return <svg className="interface-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{paths[name] || paths.dashboard}</svg>;
+}
+
 const styles = {
   select: {
     width: "100%",
@@ -24,11 +41,13 @@ const styles = {
     margin: "5px"
   },
   question: {
-    background: "#f3f7f4",
-    padding: "20px",
-    borderRadius: "10px",
-    lineHeight: "2.2",
-    fontSize: "18px",
+    background: "#ffffff",
+    padding: "clamp(22px, 4vw, 36px)",
+    borderRadius: "20px",
+    border: "1px solid #dcece1",
+    boxShadow: "0 14px 36px rgba(14, 64, 42, 0.055)",
+    lineHeight: "2.3",
+    fontSize: "clamp(18px, 2vw, 22px)",
     margin: "20px 0"
   },
   label: {
@@ -1654,7 +1673,7 @@ export default function App() {
 
   if (!user) {
     return (
-      <main className="page" dir="rtl">
+      <main className="page page--auth" dir="rtl">
         <header>
           <div className="mark">ز</div>
           <div>
@@ -1663,7 +1682,8 @@ export default function App() {
           </div>
         </header>
 
-        <section className="panel">
+        <section className="panel auth-panel">
+          <div className="auth-intro"><span className="auth-eyebrow">مسیر یادگیری، یک سؤال در هر قدم</span></div>
           <h2>
             {mode === "login" ? "ورود به سامانه" : "ثبت‌نام دانش‌آموز"}
           </h2>
@@ -1760,20 +1780,21 @@ export default function App() {
 
   if (profile.role === "teacher") {
     return (
-      <main className="page" dir="rtl">
-        <header>
+      <main className="page page--teacher" dir="rtl">
+        <header className="teacher-top-header">
           <div className="mark">ز</div>
           <div>
-            <h1>پنل دبیر</h1>
-            <p>پرسمان زیست | مدیریت سامانه</p>
+            <h1>مرکز مدیریت پرسمان زیست</h1>
+            <p>پنل دبیر · مدیریت آموزشی، دانش‌آموزان و گزارش‌ها</p>
           </div>
         </header>
 
         <section className="panel teacher-panel">
           <div className="teacher-panel-heading">
             <div>
+              <span className="teacher-eyebrow">فضای مدیریت آموزشی</span>
               <h2>خوش آمدید، {profile.display_name}</h2>
-              <p>بخش موردنظر را از زبانه‌های زیر انتخاب کنید.</p>
+              <p>ابزارهای سامانه در منوی کناری در دسترس شما هستند.</p>
             </div>
             <button type="button" className="teacher-panel-logout" onClick={logout}>خروج از حساب</button>
           </div>
@@ -1807,7 +1828,8 @@ export default function App() {
                 tabIndex={teacherTab === key ? 0 : -1}
                 className={teacherTab === key ? "teacher-tab is-active" : "teacher-tab"}
                 onClick={() => setTeacherTab(key)}>
-                {label}
+                <InterfaceIcon name={key} size={19} />
+                <span>{label}</span>
               </button>
             ))}
           </div>
@@ -1816,7 +1838,7 @@ export default function App() {
             <section className="teacher-tab-content" id="teacher-panel-dashboard" role="tabpanel" aria-labelledby="teacher-tab-dashboard" tabIndex={0}>
               <div className="teacher-section-heading">
                 <h3>نمای کلی سامانه</h3>
-                <p>آمار فعلی پرسمان زیست در یک نگاه</p>
+                <p>وضعیت آموزشی و فعالیت‌های ثبت‌شده در یک نگاه</p>
               </div>
               <div className="teacher-overview-grid">
                 {[
@@ -2431,12 +2453,12 @@ export default function App() {
     const currentExamQuestion = examQuestions[examIndex];
 
     return (
-      <main className="page" dir="rtl">
+      <main className="page page--student" dir="rtl">
         <header className="student-header">
           <div className="mark">ز</div>
           <div>
             <h1>پرسمان زیست</h1>
-            <p>پنل دانش‌آموز</p>
+            <p>فضای شخصی یادگیری و پیشرفت</p>
           </div>
           <button
             type="button"
@@ -2451,8 +2473,15 @@ export default function App() {
           </button>
         </header>
 
-        <section className="panel">
-          <h2>خوش آمدید، {studentFullName(profile)}</h2>
+        <section className={`panel student-panel student-panel--${screen}`}>
+          {(screen === "setup" || screen === "report") && <div className="student-welcome">
+            <div>
+              <span className="student-welcome__eyebrow">داشبورد شخصی شما</span>
+              <h2>سلام، {studentFullName(profile)}!</h2>
+              <p>با تمرین منظم، پیشرفت خودت را در هر فصل ببین.</p>
+            </div>
+            <div className="student-welcome__ornament" aria-hidden="true"><InterfaceIcon name="chart" size={38}/></div>
+          </div>}
           {screen === "setup" && (
             <details className="student-identity-details"><summary>مشاهده یا ویرایش مشخصات من</summary><StudentIdentityForm profile={profile} onSaved={() => loadProfile(user.id)}/></details>
           )}
@@ -2493,10 +2522,10 @@ export default function App() {
             <nav className="student-report-nav" aria-label="بخش‌های پنل دانش‌آموز">
               <button type="button" className={screen === "setup" ? "is-active" : ""}
                 aria-current={screen === "setup" ? "page" : undefined}
-                onClick={() => setScreen("setup")}>تمرین و آزمون</button>
+                onClick={() => setScreen("setup")}><InterfaceIcon name="questions" size={19}/> تمرین و آزمون</button>
               <button type="button" className={screen === "report" ? "is-active" : ""}
                 aria-current={screen === "report" ? "page" : undefined}
-                onClick={() => setScreen("report")}>کارنامه هوشمند من</button>
+                onClick={() => setScreen("report")}><InterfaceIcon name="reports" size={19}/> کارنامه هوشمند من</button>
             </nav>
           )}
 
@@ -2506,172 +2535,103 @@ export default function App() {
           />}
 
           {screen === "setup" && (
-            <>
-              <h3>انتخاب نوع فعالیت و محدوده</h3>
-
-              <div style={{ background: "#f3f7f4", padding: "14px", borderRadius: "10px", margin: "14px 0" }}>
-                <b>نوع فعالیت</b>
-                <label style={{ display: "block", marginTop: "10px" }}>
-                  <input
-                    type="radio"
-                    name="activityMode"
-                    value="practice"
-                    checked={activityMode === "practice"}
-                    onChange={() => setActivityMode("practice")}
-                  />{" "}
-                  تمرین آموزشی؛ نمایش فوری درست یا غلط بودن پاسخ
-                </label>
-                <label style={{ display: "block", marginTop: "10px" }}>
-                  <input
-                    type="radio"
-                    name="activityMode"
-                    value="exam"
-                    checked={activityMode === "exam"}
-                    onChange={() => setActivityMode("exam")}
-                  />{" "}
-                  آزمون؛ نمایش نتیجه و پاسخ صحیح فقط در پایان
-                </label>
-              </div>
-
-              {questionsLoading ? (
-                <p>در حال دریافت سؤال‌ها...</p>
-              ) : (
-                <>
-                  <label style={styles.label}>کتاب زیست</label>
-                  <select
-                    style={styles.select}
-                    value={book}
-                    onChange={e => {
-                      setBook(e.target.value);
-                      setChapter("");
-                      setLesson("");
-                      setTopic("");
-                    }}
-                  >
-                    <option value="">همه کتاب‌ها</option>
-                    {books.map(v => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
-                  </select>
-
-                  <label style={styles.label}>فصل</label>
-                  <select
-                    style={styles.select}
-                    value={chapter}
-                    onChange={e => {
-                      setChapter(e.target.value);
-                      setLesson("");
-                      setTopic("");
-                    }}
-                  >
-                    <option value="">همه فصل‌ها</option>
-                    {chapters.map(v => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
-                  </select>
-
-                  <label style={styles.label}>گفتار</label>
-                  <select
-                    style={styles.select}
-                    value={lesson}
-                    onChange={e => {
-                      setLesson(e.target.value);
-                      setTopic("");
-                    }}
-                  >
-                    <option value="">همه گفتارها</option>
-                    {lessons.map(v => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
-                  </select>
-
-                  <label style={styles.label}>عنوان</label>
-                  <select
-                    style={styles.select}
-                    value={topic}
-                    onChange={e => setTopic(e.target.value)}
-                  >
-                    <option value="">همه عنوان‌ها</option>
-                    {topics.map(v => (
-                      <option key={v} value={v}>{v}</option>
-                    ))}
-                  </select>
-
-                  <div style={{ marginTop: "20px" }}>
-                    <p>
-                      تعداد کل سؤال‌های موجود در این محدوده:
-                      {" "}
-                      <b>{filteredQuestions.length}</b>
-                    </p>
-
-                    <label style={styles.label}>
-                      {activityMode === "practice"
-                        ? "چند سؤال می‌خواهید تمرین کنید؟"
-                        : "آزمون چند سؤال داشته باشد؟"}
-                    </label>
-
-                    <input
-                      type="number"
-                      min="1"
-                      max={filteredQuestions.length}
-                      step="1"
-                      style={styles.numberInput}
-                      value={questionCount}
-                      onChange={e => {
-                        const value = e.target.value;
-
-                        if (value === "") {
-                          setQuestionCount("");
-                          return;
-                        }
-
-                        const number = Number(value);
-
-                        if (number > filteredQuestions.length) {
-                          setQuestionCount(
-                            String(filteredQuestions.length)
-                          );
-                        } else {
-                          setQuestionCount(value);
-                        }
-                      }}
-                      placeholder="مثلاً ۲۰"
-                    />
-
-                    <p style={{
-                      fontSize: "13px",
-                      color: "#666",
-                      lineHeight: "1.8"
-                    }}>
-                      سؤال‌ها به‌صورت تصادفی و بدون تکرار انتخاب می‌شوند.
-                      حداکثر تعداد قابل انتخاب:
-                      {" "}
-                      {filteredQuestions.length}
-                    </p>
-                  </div>
-
-                  <button
-                    style={{
-                      ...styles.action,
-                      background: "#176b43",
-                      color: "white"
-                    }}
-                    disabled={
-                      loading ||
-                      filteredQuestions.length === 0 ||
-                      !Number.isInteger(Number(questionCount)) ||
-                      Number(questionCount) < 1 ||
-                      Number(questionCount) > filteredQuestions.length
-                    }
-                    onClick={activityMode === "practice" ? startExercise : startExam}
-                  >
-                    {loading
-                      ? "در حال آماده‌سازی..."
-                      : activityMode === "practice" ? "شروع تمرین" : "شروع آزمون"}
-                  </button>
-                </>
-              )}
-            </>
+            <div className="student-setup-layout">
+              <section className="student-setup-card student-setup-card--mode" aria-labelledby="student-mode-title">
+                <div className="student-setup-title">
+                  <span className="student-step">۰۱</span>
+                  <div><h3 id="student-mode-title">نوع فعالیت را انتخاب کن</h3>
+                    <p>تمرین برای یادگیری، آزمون برای سنجش آمادگی</p></div>
+                </div>
+                <fieldset className="student-mode-options">
+                  <legend className="sr-only">نوع فعالیت</legend>
+                  <label className={`student-mode-choice ${activityMode === "practice" ? "is-selected" : ""}`}>
+                    <input type="radio" name="activityMode" value="practice"
+                      checked={activityMode === "practice"} onChange={() => setActivityMode("practice")}/>
+                    <span className="student-mode-choice__icon"><InterfaceIcon name="questions" size={24}/></span>
+                    <span className="student-mode-choice__content"><strong>تمرین آموزشی</strong>
+                      <small>نتیجه هر پاسخ را همان لحظه مشاهده می‌کنی.</small></span>
+                  </label>
+                  <label className={`student-mode-choice ${activityMode === "exam" ? "is-selected" : ""}`}>
+                    <input type="radio" name="activityMode" value="exam"
+                      checked={activityMode === "exam"} onChange={() => setActivityMode("exam")}/>
+                    <span className="student-mode-choice__icon"><InterfaceIcon name="check" size={24}/></span>
+                    <span className="student-mode-choice__content"><strong>آزمون</strong>
+                      <small>پاسخ‌ها و نتیجه را پس از پایان آزمون می‌بینی.</small></span>
+                  </label>
+                </fieldset>
+              </section>
+              <section className="student-setup-card student-setup-card--filters" aria-labelledby="student-filters-title">
+                <div className="student-setup-title">
+                  <span className="student-step">۰۲</span>
+                  <div><h3 id="student-filters-title">محدوده مطالعه را مشخص کن</h3>
+                    <p>کتاب، فصل، گفتار و مبحث موردنظر را انتخاب کن.</p></div>
+                </div>
+                {questionsLoading ? (
+                  <p role="status">در حال دریافت سؤال‌ها...</p>
+                ) : (
+                  <>
+                    <div className="student-filter-grid">
+                      <label>کتاب زیست
+                        <select value={book} onChange={e => {
+                          setBook(e.target.value); setChapter(""); setLesson(""); setTopic("");
+                        }}>
+                          <option value="">همه کتاب‌ها</option>
+                          {books.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      </label>
+                      <label>فصل
+                        <select value={chapter} onChange={e => {
+                          setChapter(e.target.value); setLesson(""); setTopic("");
+                        }}>
+                          <option value="">همه فصل‌ها</option>
+                          {chapters.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      </label>
+                      <label>گفتار
+                        <select value={lesson} onChange={e => {
+                          setLesson(e.target.value); setTopic("");
+                        }}>
+                          <option value="">همه گفتارها</option>
+                          {lessons.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      </label>
+                      <label>عنوان / مبحث
+                        <select value={topic} onChange={e => setTopic(e.target.value)}>
+                          <option value="">همه عنوان‌ها</option>
+                          {topics.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="student-start-panel">
+                      <div className="student-start-panel__details">
+                        <span>سؤال‌های موجود در این محدوده</span>
+                        <strong>{filteredQuestions.length.toLocaleString("fa-IR")} سؤال</strong>
+                        <small>سؤال‌ها به‌صورت تصادفی و بدون تکرار انتخاب می‌شوند.</small>
+                      </div>
+                      <label className="student-count-choice">
+                        {activityMode === "practice" ? "تعداد سؤال تمرین" : "تعداد سؤال آزمون"}
+                        <input type="number" min="1" max={filteredQuestions.length} step="1"
+                          value={questionCount} onChange={e => {
+                            const value = e.target.value;
+                            if (value === "") { setQuestionCount(""); return; }
+                            const count = Number(value);
+                            if (count > filteredQuestions.length) setQuestionCount(String(filteredQuestions.length));
+                            else setQuestionCount(value);
+                          }} placeholder="مثلاً ۲۰" />
+                      </label>
+                      <button type="button" className="student-start-button"
+                        disabled={loading || filteredQuestions.length === 0 ||
+                          !Number.isInteger(Number(questionCount)) || Number(questionCount) < 1 ||
+                          Number(questionCount) > filteredQuestions.length}
+                        onClick={activityMode === "practice" ? startExercise : startExam}>
+                        {loading ? "در حال آماده‌سازی..." : activityMode === "practice" ? "شروع تمرین" : "شروع آزمون"}
+                        {!loading && <InterfaceIcon name="arrow" size={19}/>} 
+                      </button>
+                    </div>
+                  </>
+                )}
+              </section>
+            </div>
           )}
 
           {screen === "exercise" && currentQuestion && (
@@ -2680,7 +2640,10 @@ export default function App() {
                 <h3>سؤال {currentIndex + 1} از {exerciseQuestions.length}</h3>
                 <QuestionIssueButton key={`practice-${currentQuestion.id}`} question={currentQuestion} />
               </div>
-
+              <div className="student-quiz-progress" aria-label={`پیشرفت تمرین: سؤال ${currentIndex + 1} از ${exerciseQuestions.length}`}>
+                <progress max={exerciseQuestions.length} value={currentIndex + 1}/>
+                <span>{Math.round(((currentIndex + 1) / exerciseQuestions.length) * 100).toLocaleString("fa-IR")}٪</span>
+              </div>
               <ProtectedQuestionText style={styles.question}>
                 {currentQuestion.statement}
               </ProtectedQuestionText>
@@ -2689,7 +2652,7 @@ export default function App() {
                 <>
                   <p>به نظر شما این جمله درست است یا غلط؟</p>
 
-                  <button
+                  <button className="student-answer-button student-answer-button--true"
                     style={{
                       ...styles.action,
                       background: "#176b43",
@@ -2701,7 +2664,7 @@ export default function App() {
                     درست
                   </button>
 
-                  <button
+                  <button className="student-answer-button student-answer-button--false"
                     style={{
                       ...styles.action,
                       background: "#b52c2c",
@@ -2794,6 +2757,10 @@ export default function App() {
                 <h3>آزمون | سؤال {examIndex + 1} از {examQuestions.length}</h3>
                 <QuestionIssueButton key={`exam-${currentExamQuestion.id}`} question={currentExamQuestion} />
               </div>
+              <div className="student-quiz-progress" aria-label={`پیشرفت آزمون: سؤال ${examIndex + 1} از ${examQuestions.length}`}>
+                <progress max={examQuestions.length} value={examIndex + 1}/>
+                <span>{Math.round(((examIndex + 1) / examQuestions.length) * 100).toLocaleString("fa-IR")}٪</span>
+              </div>
               <p>
                 پاسخ‌های ثبت‌شده: {Object.keys(examAnswers).length} از {examQuestions.length}
               </p>
@@ -2802,7 +2769,7 @@ export default function App() {
               </ProtectedQuestionText>
               <p>پاسخ خود را انتخاب کنید. درست یا غلط بودن پاسخ تا پایان آزمون نمایش داده نمی‌شود.</p>
 
-              <button
+              <button className="student-answer-button student-answer-button--true"
                 type="button"
                 style={{
                   ...styles.action,
@@ -2815,7 +2782,7 @@ export default function App() {
               >
                 درست
               </button>
-              <button
+              <button className="student-answer-button student-answer-button--false"
                 type="button"
                 style={{
                   ...styles.action,
@@ -2944,14 +2911,17 @@ export default function App() {
                     <p>سؤال {reviewIndex + 1} از {reviewQueue.length} | باقی‌مانده برای اصلاح: {reviewRemaining.length}</p>
                     {reviewQuestion && <QuestionIssueButton key={`review-${reviewQuestion.id}`} question={reviewQuestion} />}
                   </div>
-
+                  <div className="student-quiz-progress" aria-label={`پیشرفت مرور: سؤال ${reviewIndex + 1} از ${reviewQueue.length}`}>
+                    <progress max={reviewQueue.length} value={reviewIndex + 1}/>
+                    <span>{Math.round(((reviewIndex + 1) / reviewQueue.length) * 100).toLocaleString("fa-IR")}٪</span>
+                  </div>
                   <ProtectedQuestionText style={styles.question}>
                     {reviewQuestion.statement}
                   </ProtectedQuestionText>
 
                   {!reviewFeedback ? (
                     <>
-                      <button
+                      <button className="student-answer-button student-answer-button--true"
                         style={{
                           ...styles.action,
                           background: "#176b43",
@@ -2963,7 +2933,7 @@ export default function App() {
                         درست
                       </button>
 
-                      <button
+                      <button className="student-answer-button student-answer-button--false"
                         style={{
                           ...styles.action,
                           background: "#b52c2c",
