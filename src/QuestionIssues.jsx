@@ -38,8 +38,8 @@ export function QuestionIssueButton({ question }) {
     event.preventDefault();
     if (sending) return;
     const text = description.trim();
-    if (text.length < 10 || text.length > 1500) {
-      setError("لطفاً اشکال سؤال را در ۱۰ تا ۱۵۰۰ نویسه توضیح دهید.");
+    if (text.length < 3 || text.length > 1500) {
+      setError("حداقل 3 نویسه وارد کنید (حداکثر ۱۵۰۰ نویسه).");
       return;
     }
     setSending(true);
@@ -77,14 +77,14 @@ export function QuestionIssueButton({ question }) {
             {CATEGORIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
           <label htmlFor="issue-description">توضیح اشتباه</label>
-          <textarea id="issue-description" ref={textareaRef} rows={5} minLength={10} maxLength={1500}
+          <textarea id="issue-description" aria-describedby="issue-description-hint" ref={textareaRef} rows={5} minLength={3} maxLength={1500}
             required disabled={sending} value={description} onChange={event => setDescription(event.target.value)}
             placeholder="مثلاً کدام بخش جمله، پاسخ یا توضیح به نظرتان اشتباه است و چرا؟" />
-          <small>{description.trim().length.toLocaleString("fa-IR")} از ۱۵۰۰ نویسه</small>
+          <small id="issue-description-hint">{description.trim().length < 3 ? "حداقل 3 نویسه وارد کنید" : `${description.trim().length.toLocaleString("fa-IR")} از ۱۵۰۰ نویسه`}</small>
           {error && <p className="question-issue-error" role="alert">{error}</p>}
           <div className="question-issue-dialog-actions">
             <button type="button" className="question-issue-cancel" disabled={sending} onClick={() => setOpen(false)}>انصراف</button>
-            <button type="submit" disabled={sending || description.trim().length < 10}>
+            <button type="submit" disabled={sending || description.trim().length < 3}>
               {sending ? "در حال ارسال..." : "ارسال گزارش"}
             </button>
           </div>
