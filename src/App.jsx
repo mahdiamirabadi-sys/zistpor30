@@ -1668,12 +1668,23 @@ export default function App() {
 
     return (
       <main className="page" dir="rtl">
-        <header>
+        <header className="student-header">
           <div className="mark">ز</div>
           <div>
             <h1>پرسمان زیست</h1>
             <p>پنل دانش‌آموز</p>
           </div>
+          <button
+            type="button"
+            className="student-header__logout"
+            onClick={() => {
+              if (window.confirm("آیا می‌خواهید از حساب کاربری خارج شوید؟")) {
+                logout();
+              }
+            }}
+          >
+            خروج از حساب
+          </button>
         </header>
 
         <section className="panel">
@@ -2180,14 +2191,6 @@ export default function App() {
           )}
 
           {message && <p className="message">{message}</p>}
-
-          <button
-            className="link"
-            onClick={logout}
-            style={{ marginTop: "20px" }}
-          >
-            خروج از حساب
-          </button>
         </section>
       </main>
     );

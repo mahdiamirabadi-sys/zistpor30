@@ -71,6 +71,23 @@ button { -webkit-tap-highlight-color: transparent; }
 .page > header h1 { margin: 0 0 4px; color: #fff; font-size: clamp(23px, 3vw, 32px); font-weight: 800; letter-spacing: -.5px; }
 .page > header p { margin: 0; color: rgba(255,255,255,.82); font-size: 14px; }
 
+/* خروج دانش‌آموز در نوار بالای صفحه، دور از دکمه‌های تمرین و آزمون */
+.page .student-header .student-header__logout {
+  margin-right: auto;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 7px 14px;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.55);
+  background: rgba(255,255,255,.12);
+  box-shadow: none;
+  white-space: nowrap;
+}
+.page .student-header .student-header__logout:hover:not(:disabled) {
+  background: rgba(255,255,255,.22);
+  box-shadow: none;
+}
+
 .mark {
   display: grid;
   flex: 0 0 66px;
@@ -236,6 +253,7 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 700px) {
   .page { padding: 12px; }
   .page > header { min-height: 100px; padding: 18px; border-radius: 19px; }
+  .page > header.student-header { flex-wrap: wrap; row-gap: 12px; }
   .mark { flex-basis: 54px; width: 54px; height: 54px; font-size: 26px; border-radius: 17px; }
   .panel { padding: 17px; border-radius: 17px; }
   .student { align-items: flex-start; flex-direction: column; }
