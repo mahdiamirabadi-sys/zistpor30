@@ -694,3 +694,30 @@ button { -webkit-tap-highlight-color: transparent; }
   .student-report .sr-table th, .student-report .sr-table td { padding:5px; }
   .sr-topic-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* تکمیل اجباری و ویرایش مشخصات دانش‌آموز */
+.student-identity { border: 1px solid #c9e2d3; border-radius: 16px; padding: clamp(16px,3vw,24px); background: #f8fcf9; }
+.student-identity--required { max-width: 760px; margin: 12px auto; }
+.panel .student-identity h3 { margin: 0 0 9px; padding-right: 0; border-right: 0; }
+.student-identity > p { font-size: 14px; color: #51685a; margin: 0 0 14px; }
+.student-identity__form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 17px; }
+.page .student-identity__form label { display: flex; flex-direction: column; margin: 0; gap: 6px; }
+.student-identity__form input { width: 100%; }
+.student-identity__actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; grid-column: 1 / -1; margin-top: 8px; }
+.panel .student-identity__error { color: #a42626; background: #fff0ef; padding: 9px 12px; border-radius: 10px; margin-top: 12px; }
+.panel .student-identity__success { color: #17603b; margin-top: 12px; }
+.student-identity-details { margin: 5px 0 15px; border: 1px solid #dce8df; border-radius: 11px; }
+.student-identity-details > summary { cursor: pointer; padding: 9px 14px; color: #176345; font-weight: 700; }
+.student-identity-details > .student-identity { border: 0; border-top: 1px solid #e0eae4; border-radius: 0 0 11px 11px; }
+.teacher-student-identity { display: flex; flex-direction: column; gap: 3px; flex: 1 1 220px; min-width: 0; }
+.teacher-student-identity strong { color: #124a35; font-size: 15px; }
+.teacher-student-identity span { color: #4b6857; font-size: 12px; }
+.teacher-student-identity .teacher-student-identity__incomplete { color: #a35c0d; font-weight: 700; }
+.page .teacher-student-export { margin-top: 12px; padding: 8px 15px; font-size: 13px; min-height: 40px; }
+@media (max-width: 600px) { .student-identity__form { grid-template-columns: 1fr; } }
+
+.student-signup-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 16px; margin: 10px 0 18px; }
+.student-signup-fields label { min-width: 0; }
+.student-signup-fields input { width: 100%; }
+@media (max-width:600px) { .student-signup-fields { grid-template-columns: 1fr; } }

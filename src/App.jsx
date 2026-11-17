@@ -430,6 +430,99 @@ function StudentAccessEditor({ student, onSave, disabled, todayISO }) {
   );
 }
 
+// اجباری بودن تکمیل مشخصات؛ نمایش پنل تنها پس از تأیید ثبت این فیلدها توسط سرور.
+function normalizeMobile(value) {
+  return String(value ?? "")
+    .replace(/[۰-۹]/g, digit => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[\s\-]/g, "");
+}
+
+function studentProfileComplete(profile) {
+  return Boolean(profile &&
+    String(profile.first_name || "").trim().length >= 2 &&
+    String(profile.last_name || "").trim().length >= 2 &&
+    /^09\d{9}$/.test(String(profile.mobile || "")));
+}
+
+function studentFullName(student) {
+  const first = String(student?.first_name || "").trim();
+  const last = String(student?.last_name || "").trim();
+  return [first, last].filter(Boolean).join(" ") || student?.display_name || "ثبت‌نام ناقص";
+}
+
+function StudentIdentityForm({ profile, required = false, onSaved, onLogout }) {
+  const [firstName, setFirstName] = useState(profile.first_name || "");
+  const [lastName, setLastName] = useState(profile.last_name || "");
+  const [mobile, setMobile] = useState(profile.mobile || "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    setFirstName(profile.first_name || "");
+    setLastName(profile.last_name || "");
+    setMobile(profile.mobile || "");
+  }, [profile.first_name, profile.last_name, profile.mobile]);
+
+  async function save(event) {
+    event.preventDefault();
+    if (busy) return;
+    setError("");
+    setSuccess("");
+    const normalized = normalizeMobile(mobile);
+    if (firstName.trim().length < 2 || lastName.trim().length < 2) {
+      setError("نام و نام خانوادگی باید جداگانه وارد شوند (حداقل دو حرف).");
+      return;
+    }
+    if (!/^09\d{9}$/.test(normalized)) {
+      setError("شماره موبایل را به‌صورت ۱۱ رقم و با ۰۹ وارد کنید.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error: saveError } = await supabase.rpc("pz_complete_student_profile", {
+        p_first_name: firstName.trim(),
+        p_last_name: lastName.trim(),
+        p_mobile: normalized
+      });
+      if (saveError) throw saveError;
+      await onSaved();
+      setSuccess("مشخصات شما با موفقیت ذخیره شد.");
+    } catch (reason) {
+      setError("ثبت مشخصات انجام نشد: " + (reason?.message || "خطای نامشخص"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <div className={`student-identity ${required ? "student-identity--required" : ""}`}>
+    <h3>{required ? "تکمیل اجباری مشخصات دانش‌آموز" : "مشخصات ثبت‌نامی من"}</h3>
+    <p>{required ? "پیش از ورود به پنل دانش‌آموز، نام، نام خانوادگی و موبایل خود را ثبت کنید. تا تکمیل این فرم، تمرین، آزمون و کارنامه در دسترس نیستند." : "در صورت نیاز می‌توانید مشخصات خود را اصلاح کنید."}</p>
+    <form onSubmit={save} className="student-identity__form">
+      <label>نام
+        <input required autoComplete="given-name" maxLength={60} minLength={2}
+          value={firstName} onChange={event => setFirstName(event.target.value)} disabled={busy}/>
+      </label>
+      <label>نام خانوادگی
+        <input required autoComplete="family-name" maxLength={60} minLength={2}
+          value={lastName} onChange={event => setLastName(event.target.value)} disabled={busy}/>
+      </label>
+      <label>شماره موبایل دانش‌آموز
+        <input type="tel" required inputMode="tel" dir="ltr" autoComplete="tel-national"
+          maxLength={16} placeholder="09123456789" value={mobile}
+          onChange={event => setMobile(event.target.value)} disabled={busy}/>
+      </label>
+      <div className="student-identity__actions">
+        <button type="submit" disabled={busy}>{busy ? "در حال ذخیره..." : "ذخیره مشخصات"}</button>
+        {required && <button type="button" className="secondary-action" onClick={onLogout} disabled={busy}>خروج از حساب</button>}
+      </div>
+    </form>
+    {error && <p role="alert" className="student-identity__error">{error}</p>}
+    {success && !required && <p role="status" className="student-identity__success">{success}</p>}
+  </div>;
+}
+
 // جلوگیری از کپی معمولی متن سؤال در پنل دانش‌آموز؛ این کار محافظت مطلق نیست.
 // دسترسی صفحه‌خوان و عملکرد دکمه‌های پاسخ همچنان حفظ می‌شود.
 function ProtectedQuestionText({ children, style }) {
@@ -452,6 +545,9 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState("login");
+  const [signupFirstName, setSignupFirstName] = useState("");
+  const [signupLastName, setSignupLastName] = useState("");
+  const [signupMobile, setSignupMobile] = useState("");
   const [teacherTab, setTeacherTab] = useState("dashboard");
 
   const [user, setUser] = useState(null);
@@ -708,11 +804,58 @@ export default function App() {
 
     if (
       profile?.role === "student" &&
+      studentProfileComplete(profile) &&
       studentAccessState(profile, todayISO) === "active"
     ) {
       loadQuestions("student");
     }
   }, [profile, todayISO]);
+
+  const [exportingStudentRegistry, setExportingStudentRegistry] = useState(false);
+
+  async function exportStudentRegistryExcel() {
+    if (exportingStudentRegistry) return;
+    setExportingStudentRegistry(true);
+    setMessage("");
+    try {
+      // اطلاعات ایمیل فقط از تابع محافظت‌شده مخصوص دبیر دریافت می‌شود.
+      const { data, error } = await supabase.rpc("pz_teacher_student_registry");
+      if (error) throw error;
+      if (!Array.isArray(data)) throw new Error("اطلاعات ثبت‌نام دریافت نشد.");
+      const XLSX = await import("xlsx");
+      const rows = data.map((student, index) => ({
+        "ردیف": index + 1,
+        "نام": student.first_name || "",
+        "نام خانوادگی": student.last_name || "",
+        "نام نمایشی": student.display_name || "",
+        "شماره موبایل": student.mobile || "",
+        "ایمیل ثبت‌نامی": student.email || "",
+        "وضعیت مشخصات": student.profile_complete ? "تکمیل" : "ناقص",
+        "وضعیت تأیید": student.is_approved ? "تأییدشده" : "در انتظار تأیید",
+        "شروع دسترسی": gregorianISOToJalali(student.access_start_date) || "نامحدود",
+        "پایان دسترسی": gregorianISOToJalali(student.access_end_date) || "نامحدود",
+        "تاریخ ثبت‌نام": student.created_at ? new Intl.DateTimeFormat("fa-IR-u-ca-persian", { timeZone: "Asia/Tehran", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(student.created_at)) : "",
+        "شناسه حساب": student.id || ""
+      }));
+      const columns = ["ردیف", "نام", "نام خانوادگی", "نام نمایشی", "شماره موبایل", "ایمیل ثبت‌نامی", "وضعیت مشخصات", "وضعیت تأیید", "شروع دسترسی", "پایان دسترسی", "تاریخ ثبت‌نام", "شناسه حساب"];
+      const worksheet = XLSX.utils.json_to_sheet(rows, { header: columns });
+      worksheet["!cols"] = [7, 17, 22, 25, 18, 34, 18, 20, 19, 19, 18, 38].map(wch => ({ wch }));
+      // ستون موبایل متنی باقی می‌ماند تا صفر ابتدای شماره حفظ شود.
+      const mobileCol = "E";
+      rows.forEach((_, index) => {
+        const cell = worksheet[`${mobileCol}${index + 2}`];
+        if (cell) { cell.t = "s"; cell.z = "@"; }
+      });
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "دانش‌آموزان");
+      XLSX.writeFile(workbook, `porseman-students-${todayInIranISO()}.xlsx`);
+      setMessage(`خروجی اطلاعات ثبت‌نام ${data.length.toLocaleString("fa-IR")} دانش‌آموز آماده شد.`);
+    } catch (reason) {
+      setMessage("دریافت خروجی اکسل انجام نشد: " + (reason?.message || "خطای نامشخص"));
+    } finally {
+      setExportingStudentRegistry(false);
+    }
+  }
 
   async function authenticate(e) {
     e.preventDefault();
@@ -721,12 +864,21 @@ export default function App() {
 
     try {
       if (mode === "signup") {
+        const first = signupFirstName.trim();
+        const last = signupLastName.trim();
+        const phone = normalizeMobile(signupMobile);
+        if (first.length < 2 || last.length < 2 || !/^09\d{9}$/.test(phone)) {
+          throw new Error("نام، نام خانوادگی و شماره موبایل معتبر را تکمیل کنید.");
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              display_name: email.split("@")[0]
+              first_name: first,
+              last_name: last,
+              mobile: phone,
+              display_name: first + " " + last
             }
           }
         });
@@ -747,6 +899,21 @@ export default function App() {
           setMessage(error.message);
         } else {
           setUser(data.user);
+          const metadata = data.user.user_metadata || {};
+          const autoMobile = normalizeMobile(metadata.mobile);
+          if (String(metadata.first_name || "").trim().length >= 2 &&
+              String(metadata.last_name || "").trim().length >= 2 && /^09\d{9}$/.test(autoMobile)) {
+            const { data: existing } = await supabase.from("profiles")
+              .select("role,first_name,last_name,mobile").eq("id", data.user.id).maybeSingle();
+            if (existing?.role === "student" && !studentProfileComplete(existing)) {
+              // حساب جدید: اطلاعات ثبت‌نام فقط پس از تأیید مجدد در سرور وارد profiles می‌شود.
+              await supabase.rpc("pz_complete_student_profile", {
+                p_first_name: String(metadata.first_name).trim(),
+                p_last_name: String(metadata.last_name).trim(),
+                p_mobile: autoMobile
+              });
+            }
+          }
           await loadProfile(data.user.id);
           setMessage("ورود موفقیت‌آمیز بود.");
         }
@@ -1453,6 +1620,22 @@ export default function App() {
               />
             </label>
 
+            {mode === "signup" && <div className="student-signup-fields">
+              <label>نام دانش‌آموز
+                <input required maxLength={60} minLength={2} autoComplete="given-name"
+                  value={signupFirstName} onChange={e => setSignupFirstName(e.target.value)} />
+              </label>
+              <label>نام خانوادگی دانش‌آموز
+                <input required maxLength={60} minLength={2} autoComplete="family-name"
+                  value={signupLastName} onChange={e => setSignupLastName(e.target.value)} />
+              </label>
+              <label>شماره موبایل دانش‌آموز
+                <input required type="tel" inputMode="tel" dir="ltr" autoComplete="tel-national"
+                  maxLength={16} placeholder="09123456789"
+                  value={signupMobile} onChange={e => setSignupMobile(e.target.value)} />
+              </label>
+            </div>}
+
             <button disabled={loading}>
               {loading
                 ? "لطفاً صبر کنید..."
@@ -2017,7 +2200,9 @@ export default function App() {
             <section className="teacher-tab-content" id="teacher-panel-students" role="tabpanel" aria-labelledby="teacher-tab-students" tabIndex={0}>
               <div className="teacher-section-heading">
                 <h3>مدیریت دانش‌آموزان</h3>
-                <p>تأیید حساب، تعیین دوره دسترسی و مشاهده پرونده تحلیلی</p>
+                <p>تأیید حساب، تعیین دوره دسترسی، اطلاعات ثبت‌نامی و مشاهده پرونده تحلیلی</p>
+                <button type="button" className="teacher-student-export" onClick={exportStudentRegistryExcel}
+                  disabled={exportingStudentRegistry}>{exportingStudentRegistry ? "در حال آماده‌سازی اکسل..." : "دریافت اکسل اطلاعات ثبت‌نام دانش‌آموزان (.xlsx)"}</button>
               </div>
 
           <h3>درخواست‌های در انتظار تأیید</h3>
@@ -2026,10 +2211,16 @@ export default function App() {
             ? <p>در حال حاضر دانش‌آموزی در انتظار تأیید نیست.</p>
             : students.filter(s => !s.is_approved).map(student => (
               <div className="student student-access-row" key={student.id}>
-                <p>{student.display_name}</p>
+                <div className="teacher-student-identity">
+                  <strong>{studentFullName(student)}</strong>
+                  <span>نام: {student.first_name || "ثبت‌نشده"} | نام خانوادگی: {student.last_name || "ثبت‌نشده"}</span>
+                  <span>موبایل: <b dir="ltr">{student.mobile || "ثبت‌نشده"}</b></span>
+                  {!studentProfileComplete(student) && <span className="teacher-student-identity__incomplete">مشخصات ثبت‌نام ناقص است</span>}
+                </div>
                 <div className="student-management-actions">
                   <button
-                    disabled={loading || Boolean(deletingStudentId)}
+                    disabled={loading || Boolean(deletingStudentId) || !studentProfileComplete(student)}
+                    title={!studentProfileComplete(student) ? "ابتدا دانش‌آموز باید مشخصاتش را تکمیل کند" : "تأیید دانش‌آموز"}
                     onClick={() => approveStudent(student.id)}
                   >
                     تأیید دانش‌آموز
@@ -2061,7 +2252,12 @@ export default function App() {
 
           {students.filter(s => s.is_approved).map(student => (
             <div className="student student-access-row" key={student.id}>
-              <p>{student.display_name}</p>
+              <div className="teacher-student-identity">
+                <strong>{studentFullName(student)}</strong>
+                <span>نام: {student.first_name || "ثبت‌نشده"} | نام خانوادگی: {student.last_name || "ثبت‌نشده"}</span>
+                <span>موبایل: <b dir="ltr">{student.mobile || "ثبت‌نشده"}</b></span>
+                {!studentProfileComplete(student) && <span className="teacher-student-identity__incomplete">مشخصات ثبت‌نام ناقص است</span>}
+              </div>
               <div className="student-management-actions">
                 <span>تأیید شده</span>
                 <button type="button" className="teacher-profile-button" onClick={() => {
@@ -2092,6 +2288,16 @@ export default function App() {
         </section>
       </main>
     );
+  }
+
+  // حتی حساب‌های تأییدشده قدیمی تا تکمیل مشخصات به هیچ بخشی از پنل نمی‌رسند.
+  if (profile.role === "student" && !studentProfileComplete(profile)) {
+    return <main className="page" dir="rtl">
+      <header><div className="mark">ز</div><div><h1>پرسمان زیست</h1><p>مرحله ضروری ثبت‌نام</p></div></header>
+      <section className="panel">
+        <StudentIdentityForm profile={profile} required onSaved={() => loadProfile(user.id)} onLogout={logout}/>
+      </section>
+    </main>;
   }
 
   if (profile.role === "student" && !profile.is_approved) {
@@ -2129,7 +2335,7 @@ export default function App() {
           <button type="button" onClick={() => setScreen(current => current === "report" ? "setup" : "report")}>{screen === "report" ? "بستن کارنامه" : "مشاهده کارنامه قبلی"}</button>{" "}
           <button type="button" onClick={logout}>خروج از حساب</button>
           {screen === "report" && <StudentReport
-            studentId={user.id} studentName={profile.display_name} todayISO={todayISO}
+            studentId={user.id} studentName={studentFullName(profile)} todayISO={todayISO}
             onBack={() => setScreen("setup")}
           />}
         </section>
@@ -2166,7 +2372,8 @@ export default function App() {
         </header>
 
         <section className="panel">
-          <h2>خوش آمدید، {profile.display_name}</h2>
+          <h2>خوش آمدید، {studentFullName(profile)}</h2>
+          <details className="student-identity-details"><summary>مشاهده یا ویرایش مشخصات من</summary><StudentIdentityForm profile={profile} onSaved={() => loadProfile(user.id)}/></details>
 
           {showAccessCountdown && (
             <aside className="access-countdown" role="status" aria-live="polite">
@@ -2199,7 +2406,7 @@ export default function App() {
           )}
 
           {screen === "report" && <StudentReport
-            studentId={user.id} studentName={profile.display_name} todayISO={todayISO}
+            studentId={user.id} studentName={studentFullName(profile)} todayISO={todayISO}
             onBack={() => setScreen("setup")}
           />}
 
