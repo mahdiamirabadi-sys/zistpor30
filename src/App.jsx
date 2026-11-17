@@ -1,6 +1,7 @@
-﻿
+
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
+import TeacherAnalytics from "./TeacherAnalytics";
 
 const styles = {
   select: {
@@ -432,6 +433,7 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState("login");
+  const [teacherTab, setTeacherTab] = useState("dashboard");
 
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -1493,8 +1495,89 @@ export default function App() {
           </div>
         </header>
 
-        <section className="panel">
-          <h2>خوش آمدید، {profile.display_name}</h2>
+        <section className="panel teacher-panel">
+          <div className="teacher-panel-heading">
+            <div>
+              <h2>خوش آمدید، {profile.display_name}</h2>
+              <p>بخش موردنظر را از زبانه‌های زیر انتخاب کنید.</p>
+            </div>
+            <button type="button" className="teacher-panel-logout" onClick={logout}>خروج از حساب</button>
+          </div>
+
+          <div className="teacher-tabs" role="tablist" aria-label="بخش‌های پنل دبیر"
+            onKeyDown={event => {
+              const tabs = ["dashboard", "questions", "students", "reports"];
+              const currentIndex = tabs.indexOf(teacherTab);
+              let nextIndex;
+              if (event.key === "ArrowLeft") nextIndex = (currentIndex + 1) % tabs.length;
+              else if (event.key === "ArrowRight") nextIndex = (currentIndex + tabs.length - 1) % tabs.length;
+              else if (event.key === "Home") nextIndex = 0;
+              else if (event.key === "End") nextIndex = tabs.length - 1;
+              else return;
+              event.preventDefault();
+              setTeacherTab(tabs[nextIndex]);
+              const nextButton = event.currentTarget.querySelector(`[data-teacher-tab="${tabs[nextIndex]}"]`);
+              nextButton?.focus();
+            }}>
+            {[
+              ["dashboard", "داشبورد"],
+              ["questions", "سؤال‌ها"],
+              ["students", "دانش‌آموزان"],
+              ["reports", "گزارش‌ها"]
+            ].map(([key, label]) => (
+              <button type="button" role="tab" id={`teacher-tab-${key}`} key={key}
+                data-teacher-tab={key}
+                aria-selected={teacherTab === key}
+                aria-controls={`teacher-panel-${key}`}
+                tabIndex={teacherTab === key ? 0 : -1}
+                className={teacherTab === key ? "teacher-tab is-active" : "teacher-tab"}
+                onClick={() => setTeacherTab(key)}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {teacherTab === "dashboard" && (
+            <section className="teacher-tab-content" id="teacher-panel-dashboard" role="tabpanel" aria-labelledby="teacher-tab-dashboard" tabIndex={0}>
+              <div className="teacher-section-heading">
+                <h3>نمای کلی سامانه</h3>
+                <p>آمار فعلی پرسمان زیست در یک نگاه</p>
+              </div>
+              <div className="teacher-overview-grid">
+                {[
+                  ["کل دانش‌آموزان", students.length, `${students.filter(s => studentAccessState(s, todayISO) === "active").length} نفر با دسترسی فعال`],
+                  ["سؤال‌های بانک", questions.length, `${questions.filter(q => q.is_active === false).length} سؤال بایگانی‌شده`],
+                  ["پاسخ‌های تمرینی", attempts.length, `${attempts.filter(a => isTrue(a.is_correct)).length} پاسخ صحیح`],
+                  ["آزمون‌های نهایی‌شده", examSessions.filter(s => s.status === "submitted").length, "گزارش جزئیات در زبانه گزارش‌ها"]
+                ].map(([label, value, detail]) => (
+                  <div className="teacher-overview-card" key={label}>
+                    <span>{label}</span>
+                    <strong>{Number(value).toLocaleString("fa-IR")}</strong>
+                    <small>{detail}</small>
+                  </div>
+                ))}
+              </div>
+              <div className="teacher-overview-actions">
+                <h3>دسترسی سریع</h3>
+                <div>
+                  <button type="button" onClick={() => setTeacherTab("questions")}>ثبت و مدیریت سؤال‌ها</button>
+                  <button type="button" onClick={() => setTeacherTab("students")}>مدیریت دانش‌آموزان</button>
+                  <button type="button" onClick={() => setTeacherTab("reports")}>گزارش‌ها و پرونده تحلیلی</button>
+                </div>
+              </div>
+              <button type="button" className="teacher-refresh-button" disabled={questionsLoading || attemptsLoading || examSessionsLoading}
+                onClick={() => { void Promise.all([loadStudents(), loadQuestions("teacher"), loadAttempts(), loadExamSessions()]); }}>
+                به‌روزرسانی آمار
+              </button>
+            </section>
+          )}
+
+          {teacherTab === "questions" && (
+            <section className="teacher-tab-content" id="teacher-panel-questions" role="tabpanel" aria-labelledby="teacher-tab-questions" tabIndex={0}>
+              <div className="teacher-section-heading">
+                <h3>مدیریت سؤال‌ها</h3>
+                <p>ثبت سؤال، کدگذاری، ورود Excel، بایگانی و حذف گروهی</p>
+              </div>
 
           <div style={{
             border: "1px solid #cce5d7", borderRadius: "14px", background: "#f1f9f4",
@@ -1802,7 +1885,6 @@ export default function App() {
             </div>
           )}
 
-          {message && <p className="message" role="status">{message}</p>}
           {questionsLoading ? (
             <p>در حال دریافت سؤال‌ها...</p>
           ) : teacherFilteredQuestions.length === 0 ? (
@@ -1886,9 +1968,32 @@ export default function App() {
             </div>
           )}
 
-          <hr style={{ margin: "30px 0" }} />
+            </section>
+          )}
 
-          <h3>گزارش عملکرد دانش‌آموزان</h3>
+          {teacherTab === "reports" && (
+            <section className="teacher-tab-content" id="teacher-panel-reports" role="tabpanel" aria-labelledby="teacher-tab-reports" tabIndex={0}>
+              <div className="teacher-section-heading">
+                <h3>گزارش‌ها و پرونده تحلیلی</h3>
+                <p>عملکرد فردی، تحلیل فصل و مبحث، نمودار پیشرفت و خروجی CSV</p>
+              </div>
+              <TeacherAnalytics
+                students={students}
+                questions={questions}
+                attempts={attempts}
+                examSessions={examSessions}
+                todayISO={todayISO}
+                selectedStudentId={reportStudentId}
+                onStudentSelect={setReportStudentId}
+                refreshing={questionsLoading || attemptsLoading || examSessionsLoading}
+                onRefresh={() => {
+                  void Promise.all([loadStudents(), loadQuestions("teacher"), loadAttempts(), loadExamSessions()]);
+                }}
+              />
+              <details className="teacher-legacy-reports">
+                <summary>گزارش‌های جدولی قبلی (تمرین‌ها و آزمون‌ها)</summary>
+                <div className="teacher-legacy-reports__body">
+                  <h3>گزارش عملکرد دانش‌آموزان</h3>
           <p>آمار زیر همه پاسخ‌ها، از جمله پاسخ‌های ثبت‌شده در مرور مجدد، را شامل می‌شود.</p>
           <button type="button" style={{ ...styles.action, background: "#176b43", color: "white" }}
             disabled={attemptsLoading} onClick={loadAttempts}>
@@ -2017,9 +2122,17 @@ export default function App() {
             </div>
           )}
 
-          <hr style={{ margin: "30px 0" }} />
+                </div>
+              </details>
+            </section>
+          )}
 
-          <h3>مدیریت دانش‌آموزان</h3>
+          {teacherTab === "students" && (
+            <section className="teacher-tab-content" id="teacher-panel-students" role="tabpanel" aria-labelledby="teacher-tab-students" tabIndex={0}>
+              <div className="teacher-section-heading">
+                <h3>مدیریت دانش‌آموزان</h3>
+                <p>تأیید حساب، تعیین دوره دسترسی و مشاهده پرونده تحلیلی</p>
+              </div>
 
           <h3>درخواست‌های در انتظار تأیید</h3>
 
@@ -2035,6 +2148,11 @@ export default function App() {
                   >
                     تأیید دانش‌آموز
                   </button>
+                  <button type="button" className="teacher-profile-button" onClick={() => {
+                    setReportStudentId(String(student.id));
+                    setTeacherTab("reports");
+                    window.scrollTo({ top: 0, behavior: "auto" });
+                  }}>پرونده تحلیلی</button>
                   <button
                     type="button"
                     className="danger-action"
@@ -2060,6 +2178,11 @@ export default function App() {
               <p>{student.display_name}</p>
               <div className="student-management-actions">
                 <span>تأیید شده</span>
+                <button type="button" className="teacher-profile-button" onClick={() => {
+                  setReportStudentId(String(student.id));
+                  setTeacherTab("reports");
+                  window.scrollTo({ top: 0, behavior: "auto" });
+                }}>پرونده تحلیلی</button>
                 <button
                   type="button"
                   className="danger-action"
@@ -2077,9 +2200,9 @@ export default function App() {
             </div>
           ))}
 
-          {message && <p className="message">{message}</p>}
-
-          <button onClick={logout}>خروج از حساب</button>
+            </section>
+          )}
+          {message && <p className="message teacher-panel-message" role="status">{message}</p>}
         </section>
       </main>
     );
