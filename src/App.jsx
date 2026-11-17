@@ -782,6 +782,16 @@ export default function App() {
     setMessage("");
 
     const code = newQuestion.question_code.trim();
+    // The check includes both active and archived questions; ignore the current row when editing.
+    const normalizedCode = normalizeExcelText(code);
+    const codeAlreadyUsed = questions.some(q =>
+      String(q.id) !== String(editingQuestionId) &&
+      normalizeExcelText(q.question_code) === normalizedCode
+    );
+    if (normalizedCode && codeAlreadyUsed) {
+      setMessage("این کد سؤال قبلاً ثبت شده است؛ لطفاً کد دیگری انتخاب کنید.");
+      return;
+    }
     const statement = newQuestion.statement.trim();
     const correction = newQuestion.correction.trim();
     const answerIsTrue = newQuestion.is_true === "true";
@@ -1003,6 +1013,26 @@ export default function App() {
       correction: data.correction ?? null
     };
   }
+
+  // All records (active and archived) count towards the code summary.
+  // Numeric codes are compared as BigInt so large codes do not lose precision.
+  const lastRegisteredQuestion = questions.reduce((last, q) =>
+    !last || BigInt(String(q.id)) > BigInt(String(last.id)) ? q : last, null);
+  const highestNumericQuestionCode = questions.reduce((highest, q) => {
+    const code = normalizeExcelText(q.question_code);
+    if (!/^\d+$/.test(code)) return highest;
+    const value = BigInt(code);
+    return !highest || value > highest.value ? { value, code } : highest;
+  }, null);
+  const nextSuggestedQuestionCode = highestNumericQuestionCode
+    ? (highestNumericQuestionCode.value + 1n).toString()
+        .padStart(highestNumericQuestionCode.code.length, "0")
+    : questions.length === 0 ? "1" : null;
+  const newCodeNormalized = normalizeExcelText(newQuestion.question_code);
+  const newCodeIsDuplicate = Boolean(newCodeNormalized) && questions.some(q =>
+    String(q.id) !== String(editingQuestionId) &&
+    normalizeExcelText(q.question_code) === newCodeNormalized
+  );
 
   // فیلتر و صفحه‌بندی مدیریت بانک سؤال
   const teacherFilteredQuestions = questions.filter(q => {
@@ -1466,6 +1496,37 @@ export default function App() {
         <section className="panel">
           <h2>خوش آمدید، {profile.display_name}</h2>
 
+          <div style={{
+            border: "1px solid #cce5d7", borderRadius: "14px", background: "#f1f9f4",
+            padding: "16px", margin: "18px 0 24px"
+          }} aria-label="راهنمای کد سؤال‌ها">
+            <strong style={{ color: "#0b4b36", fontSize: "16px" }}>راهنمای کدگذاری سؤال‌ها</strong>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "12px" }}>
+              {[
+                ["آخرین کد ثبت‌شده", lastRegisteredQuestion?.question_code ?? "—"],
+                ["بزرگ‌ترین کد عددی موجود", highestNumericQuestionCode?.code ?? "—"],
+                ["کد عددی پیشنهادی بعدی", nextSuggestedQuestionCode ?? "—"]
+              ].map(([label, value]) => (
+                <div key={label} style={{
+                  flex: "1 1 170px", minWidth: "0", padding: "10px 12px",
+                  borderRadius: "10px", background: "#fff", border: "1px solid #dce8e1"
+                }}>
+                  <div style={{ color: "#64766e", fontSize: "12px" }}>{label}</div>
+                  <div dir="ltr" style={{ color: "#0b4b36", fontSize: "22px", fontWeight: 800, textAlign: "right", wordBreak: "break-word" }}>
+                    {questionsLoading && questions.length === 0 ? "در حال دریافت..." : value}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p style={{ margin: "8px 0 0", fontSize: "12px", color: "#536a5e" }}>
+              کدهای سؤال‌های فعال و بایگانی‌شده هر دو محاسبه می‌شوند؛ آخرین کد ثبت‌شده ممکن است با بزرگ‌ترین کد عددی متفاوت باشد.
+            </p>
+            <button type="button" onClick={() => loadQuestions("teacher")}
+              disabled={questionsLoading} style={{ marginTop: "10px", fontSize: "12px", minHeight: "36px" }}>
+              {questionsLoading ? "در حال به‌روزرسانی..." : "به‌روزرسانی کدها"}
+            </button>
+          </div>
+
           <h3>{editingQuestionId !== null ? "ویرایش سؤال" : "ثبت سؤال جدید"}</h3>
           <form id="question-form" onSubmit={submitNewQuestion}>
             <label style={styles.label}>کد سؤال</label>
@@ -1480,8 +1541,14 @@ export default function App() {
                 })
               }
               placeholder="مثلاً ۱۰۰۱"
+              aria-invalid={newCodeIsDuplicate}
               required
             />
+            {newCodeIsDuplicate && (
+              <p role="alert" style={{ margin: "6px 0", color: "#a52c2c", fontWeight: 700, fontSize: "13px" }}>
+                این کد سؤال قبلاً در بانک ثبت شده است (حتی اگر بایگانی باشد).
+              </p>
+            )}
 
             <label style={styles.label}>کتاب زیست</label>
             <input
@@ -1622,7 +1689,7 @@ export default function App() {
 
             <button
               type="submit"
-              disabled={savingQuestion}
+              disabled={savingQuestion || newCodeIsDuplicate}
               style={{
                 ...styles.action,
                 background: "#176b43",
