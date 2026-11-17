@@ -318,6 +318,9 @@ export default function App() {
   const [questionPage, setQuestionPage] = useState(1);
   const [editingQuestionId, setEditingQuestionId] = useState(null);
   const [updatingQuestionId, setUpdatingQuestionId] = useState(null);
+  const [deletingArchivedQuestions, setDeletingArchivedQuestions] = useState(false);
+  const [selectedArchivedQuestionIds, setSelectedArchivedQuestionIds] = useState([]);
+  const [deletingStudentId, setDeletingStudentId] = useState(null);
   const [answerSaving, setAnswerSaving] = useState(false);
   const answerLockRef = useRef(false);
 
@@ -701,6 +704,93 @@ export default function App() {
     }
   }
 
+  // حذف دائمی سؤالات بایگانی‌شده: سوابق پاسخ‌های مرتبط و کل جلسه آزمون
+  // دارای این سؤالات هم حذف می‌شوند تا ارجاع خراب در کارنامه باقی نماند.
+  // تمام بررسی‌های دسترسی و حذف وابستگی‌ها در SQL و در یک تراکنش انجام می‌شود.
+  async function deleteArchivedQuestions(questionIds) {
+    if (deletingArchivedQuestions || !questionIds.length) return;
+
+    const archivedIds = new Set(
+      questions.filter(q => q.is_active === false).map(q => String(q.id))
+    );
+    const safeIds = [...new Set(questionIds.map(String))]
+      .filter(id => archivedIds.has(id));
+    if (!safeIds.length) {
+      setMessage("هیچ سؤال بایگانی‌شده‌ای برای حذف انتخاب نشده است.");
+      return;
+    }
+
+    const description = safeIds.length === 1
+      ? "این سؤال بایگانی‌شده"
+      : `${safeIds.length} سؤال بایگانی‌شده انتخاب‌شده`;
+    if (!window.confirm(
+      `حذف دائمی ${description} انجام شود؟\n\n` +
+      "این عملیات قابل بازگشت نیست. سوابق تمرین این سؤال‌ها و جلسات آزمونی که شامل آن‌ها باشند نیز پاک می‌شوند. " +
+      "اگر لازم است، ابتدا از داده‌ها نسخه پشتیبان تهیه کنید."
+    )) return;
+
+    setDeletingArchivedQuestions(true);
+    setMessage("");
+    try {
+      const { data, error } = await supabase.rpc("pz_delete_archived_questions", {
+        p_question_ids: safeIds
+      });
+      if (error) throw error;
+      const deleted = Number(data?.deleted ?? 0);
+      const attemptsDeleted = Number(data?.attempts_deleted ?? 0);
+      const examSessionsDeleted = Number(data?.exam_sessions_deleted ?? 0);
+      const otherCount = Number(data?.not_archived_or_missing ?? 0);
+      setSelectedArchivedQuestionIds([]);
+      setQuestionPage(1);
+      await Promise.all([
+        loadQuestions("teacher"), loadAttempts(), loadExamSessions()
+      ]);
+      setMessage(
+        `${deleted} سؤال بایگانی‌شده حذف شد. ` +
+        `${attemptsDeleted} پاسخ تمرینی و ${examSessionsDeleted} جلسه آزمون مرتبط نیز حذف شد.` +
+        (otherCount ? ` ${otherCount} سؤال پیدا نشد یا بایگانی نبود.` : "")
+      );
+    } catch (error) {
+      setMessage("حذف سؤال‌ها انجام نشد: " + (error?.message || "خطای نامشخص"));
+    } finally {
+      setDeletingArchivedQuestions(false);
+    }
+  }
+
+  // حذف حساب دانش‌آموز، همراه سوابق خود او؛ سرور نقش و وابستگی‌ها را کنترل می‌کند.
+  async function deleteStudent(student) {
+    if (deletingStudentId) return;
+    const name = student.display_name || "این دانش‌آموز";
+    if (!window.confirm(
+      `آیا حساب «${name}» و تمام پاسخ‌ها و آزمون‌های مربوط به او برای همیشه حذف شوند؟\n\n` +
+      "این کار قابل بازگشت نیست و دسترسی دانش‌آموز به حساب از بین می‌رود. " +
+      "قبل از ادامه نسخه پشتیبان تهیه کنید."
+    )) return;
+    const typedName = window.prompt(
+      `برای تأیید حذف دائمی «${name}»، عبارت «حذف دانش آموز» را وارد کنید:`
+    );
+    if (typedName?.trim() !== "حذف دانش آموز") {
+      setMessage("حذف دانش‌آموز لغو شد.");
+      return;
+    }
+
+    setDeletingStudentId(String(student.id));
+    setMessage("");
+    try {
+      const { data, error } = await supabase.rpc("pz_delete_student", {
+        p_student_id: student.id
+      });
+      if (error) throw error;
+      if (reportStudentId === String(student.id)) setReportStudentId("");
+      await Promise.all([loadStudents(), loadAttempts(), loadExamSessions()]);
+      setMessage(`حساب «${name}» حذف شد؛ ${Number(data?.attempts_deleted ?? 0)} پاسخ تمرینی و ${Number(data?.exam_sessions_deleted ?? 0)} جلسه آزمون مرتبط نیز حذف شدند.`);
+    } catch (error) {
+      setMessage("حذف دانش‌آموز انجام نشد: " + (error?.message || "خطای نامشخص"));
+    } finally {
+      setDeletingStudentId(null);
+    }
+  }
+
   async function logout() {
     const { error } = await supabase.auth.signOut();
 
@@ -747,6 +837,10 @@ export default function App() {
     return [q.question_code, q.book, q.chapter, q.lesson, q.topic, q.statement]
       .some(value => String(value ?? "").toLowerCase().includes(search));
   });
+  const filteredArchivedQuestions = teacherFilteredQuestions.filter(q => q.is_active === false);
+  const selectedArchivedSet = new Set(selectedArchivedQuestionIds);
+  const allFilteredArchivedSelected = filteredArchivedQuestions.length > 0 &&
+    filteredArchivedQuestions.every(q => selectedArchivedSet.has(String(q.id)));
   const teacherQuestionPages = Math.max(1, Math.ceil(teacherFilteredQuestions.length / QUESTION_PAGE_SIZE));
   const pagedTeacherQuestions = teacherFilteredQuestions.slice(
     (questionPage - 1) * QUESTION_PAGE_SIZE,
@@ -755,6 +849,7 @@ export default function App() {
 
   useEffect(() => {
     setQuestionPage(1);
+    setSelectedArchivedQuestionIds([]);
   }, [questionSearch, showArchived]);
 
   // گزارش شامل پاسخ‌های اولیه و تمام دورهای مرور است.
@@ -1421,6 +1516,51 @@ export default function App() {
             <b>{teacherFilteredQuestions.length}</b>
           </p>
 
+          {showArchived && filteredArchivedQuestions.length > 0 && (
+            <div className="archived-bulk-actions">
+              <label className="archived-bulk-actions__check">
+                <input
+                  type="checkbox"
+                  checked={allFilteredArchivedSelected}
+                  disabled={deletingArchivedQuestions}
+                  onChange={event => {
+                    const ids = filteredArchivedQuestions.map(q => String(q.id));
+                    setSelectedArchivedQuestionIds(prev => event.target.checked
+                      ? [...new Set([...prev, ...ids])]
+                      : prev.filter(id => !ids.includes(id))
+                    );
+                  }}
+                />
+                انتخاب همه سؤال‌های بایگانی‌شده در نتایج جست‌وجو (تمام صفحه‌ها)
+              </label>
+              <p>
+                <b>{selectedArchivedQuestionIds.length}</b> سؤال بایگانی‌شده انتخاب شده است.
+              </p>
+              <div className="archived-bulk-actions__buttons">
+                <button
+                  type="button"
+                  className="danger-action"
+                  disabled={deletingArchivedQuestions || selectedArchivedQuestionIds.length === 0}
+                  onClick={() => deleteArchivedQuestions(selectedArchivedQuestionIds)}
+                >
+                  {deletingArchivedQuestions ? "در حال حذف..." : "حذف دائمی سؤال‌های انتخاب‌شده"}
+                </button>
+                <button
+                  type="button"
+                  className="secondary-action"
+                  disabled={deletingArchivedQuestions || selectedArchivedQuestionIds.length === 0}
+                  onClick={() => setSelectedArchivedQuestionIds([])}
+                >
+                  لغو انتخاب‌ها
+                </button>
+              </div>
+              <p className="archived-bulk-actions__note">
+                حذف دائمی قابل بازگشت نیست؛ پاسخ‌های مرتبط و جلسات آزمون دارای این سؤال‌ها نیز پاک می‌شوند.
+              </p>
+            </div>
+          )}
+
+          {message && <p className="message" role="status">{message}</p>}
           {questionsLoading ? (
             <p>در حال دریافت سؤال‌ها...</p>
           ) : teacherFilteredQuestions.length === 0 ? (
@@ -1437,6 +1577,21 @@ export default function App() {
                   lineHeight: "2"
                 }}
               >
+                {q.is_active === false && (
+                  <label className="archived-question-choice">
+                    <input
+                      type="checkbox"
+                      checked={selectedArchivedSet.has(String(q.id))}
+                      disabled={deletingArchivedQuestions}
+                      onChange={event => setSelectedArchivedQuestionIds(prev =>
+                        event.target.checked
+                          ? [...new Set([...prev, String(q.id)])]
+                          : prev.filter(id => id !== String(q.id))
+                      )}
+                    />
+                    انتخاب سؤال برای حذف گروهی
+                  </label>
+                )}
                 <p><b>کد سؤال:</b> {q.question_code} {q.is_active === false && <b>(بایگانی)</b>}</p>
                 <p><b>کتاب:</b> {q.book}</p>
                 <p><b>فصل:</b> {q.chapter}</p>
@@ -1454,17 +1609,27 @@ export default function App() {
                     <b>شکل صحیح جمله:</b>{" "}{q.correction}
                   </p>
                 )}
-                <button type="button" style={styles.action} onClick={() => editQuestion(q)}>
+                <button type="button" style={styles.action} disabled={deletingArchivedQuestions} onClick={() => editQuestion(q)}>
                   ویرایش
                 </button>
                 <button
                   type="button"
                   style={{ ...styles.action, background: q.is_active === false ? "#176b43" : "#8b3333", color: "white" }}
-                  disabled={updatingQuestionId === q.id}
+                  disabled={deletingArchivedQuestions || updatingQuestionId === q.id}
                   onClick={() => toggleQuestionActive(q)}
                 >
                   {q.is_active === false ? "بازیابی سؤال" : "حذف از بانک فعال (بایگانی)"}
                 </button>
+                {q.is_active === false && (
+                  <button
+                    type="button"
+                    className="danger-action"
+                    disabled={deletingArchivedQuestions || updatingQuestionId === q.id}
+                    onClick={() => deleteArchivedQuestions([String(q.id)])}
+                  >
+                    {deletingArchivedQuestions ? "در حال حذف..." : "حذف دائمی این سؤال"}
+                  </button>
+                )}
               </div>
             ))
           )}
@@ -1621,12 +1786,22 @@ export default function App() {
             : students.filter(s => !s.is_approved).map(student => (
               <div className="student" key={student.id}>
                 <p>{student.display_name}</p>
-                <button
-                  disabled={loading}
-                  onClick={() => approveStudent(student.id)}
-                >
-                  تأیید دانش‌آموز
-                </button>
+                <div className="student-management-actions">
+                  <button
+                    disabled={loading || Boolean(deletingStudentId)}
+                    onClick={() => approveStudent(student.id)}
+                  >
+                    تأیید دانش‌آموز
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-action"
+                    disabled={loading || Boolean(deletingStudentId)}
+                    onClick={() => deleteStudent(student)}
+                  >
+                    {deletingStudentId === String(student.id) ? "در حال حذف..." : "حذف دانش‌آموز"}
+                  </button>
+                </div>
               </div>
             ))
           }
@@ -1636,7 +1811,17 @@ export default function App() {
           {students.filter(s => s.is_approved).map(student => (
             <div className="student" key={student.id}>
               <p>{student.display_name}</p>
-              <span>تأیید شده</span>
+              <div className="student-management-actions">
+                <span>تأیید شده</span>
+                <button
+                  type="button"
+                  className="danger-action"
+                  disabled={loading || Boolean(deletingStudentId)}
+                  onClick={() => deleteStudent(student)}
+                >
+                  {deletingStudentId === String(student.id) ? "در حال حذف..." : "حذف دانش‌آموز"}
+                </button>
+              </div>
             </div>
           ))}
 

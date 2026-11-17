@@ -259,3 +259,50 @@ button { -webkit-tap-highlight-color: transparent; }
   .student { align-items: flex-start; flex-direction: column; }
   .page table { min-width: 650px; }
 }
+
+
+/* مدیریت حذف امن در پنل دبیر */
+.page button.danger-action {
+  color: #fff;
+  border-color: #ae3030;
+  background: linear-gradient(135deg, #bd4444, #902626);
+  box-shadow: 0 5px 12px rgba(145, 34, 34, .12);
+}
+.page button.secondary-action {
+  color: var(--pz-green-900);
+  border-color: #bed4c7;
+  background: #edf5f0;
+  box-shadow: none;
+}
+.archived-bulk-actions {
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid #e6c7c0;
+  border-radius: 14px;
+  background: #fff9f7;
+}
+.page .archived-bulk-actions__check,
+.page .archived-question-choice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.archived-bulk-actions__buttons,
+.student-management-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.archived-bulk-actions__note {font-size: 13px; margin-bottom: 0;}
+.page .archived-question-choice {
+  padding: 5px 0 10px;
+  border-bottom: 1px solid #dce8e1;
+}
+@media (max-width: 700px) {
+  .student-management-actions {width: 100%;}
+}
