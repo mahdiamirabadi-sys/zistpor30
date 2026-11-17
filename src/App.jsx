@@ -429,6 +429,24 @@ function StudentAccessEditor({ student, onSave, disabled, todayISO }) {
   );
 }
 
+// جلوگیری از کپی معمولی متن سؤال در پنل دانش‌آموز؛ این کار محافظت مطلق نیست.
+// دسترسی صفحه‌خوان و عملکرد دکمه‌های پاسخ همچنان حفظ می‌شود.
+function ProtectedQuestionText({ children, style }) {
+  const preventTextCopy = event => event.preventDefault();
+  return (
+    <div
+      className="student-protected-question"
+      style={style}
+      onCopy={preventTextCopy}
+      onCut={preventTextCopy}
+      onContextMenu={preventTextCopy}
+      onDragStart={preventTextCopy}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -2471,9 +2489,9 @@ export default function App() {
                 سؤال {currentIndex + 1} از {exerciseQuestions.length}
               </h3>
 
-              <div style={styles.question}>
+              <ProtectedQuestionText style={styles.question}>
                 {currentQuestion.statement}
-              </div>
+              </ProtectedQuestionText>
 
               {!feedback ? (
                 <>
@@ -2505,21 +2523,21 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  <h3 style={{
-                    color: feedback.correct ? "green" : "red"
-                  }}>
-                    {feedback.correct
-                      ? "آفرین! پاسخ شما درست است."
-                      : "پاسخ شما نادرست است."}
-                  </h3>
+                  <ProtectedQuestionText>
+                    <h3 style={{ color: feedback.correct ? "green" : "red" }}>
+                      {feedback.correct
+                        ? "آفرین! پاسخ شما درست است."
+                        : "پاسخ شما نادرست است."}
+                    </h3>
+                  </ProtectedQuestionText>
 
                   {!feedback.correct && (
-                    <div style={styles.question}>
+                    <ProtectedQuestionText style={styles.question}>
                       <p><b>پاسخ صحیح: {feedback.correctAnswer ? "درست" : "غلط"}</b></p>
                       <p>{feedback.correctAnswer
                         ? "این جمله صحیح است و نیازی به اصلاح ندارد."
                         : feedback.correction || "شکل صحیح جمله ثبت نشده است."}</p>
-                    </div>
+                    </ProtectedQuestionText>
                   )}
 
                   <button
@@ -2584,9 +2602,9 @@ export default function App() {
               <p>
                 پاسخ‌های ثبت‌شده: {Object.keys(examAnswers).length} از {examQuestions.length}
               </p>
-              <div style={styles.question}>
+              <ProtectedQuestionText style={styles.question}>
                 {currentExamQuestion.statement}
-              </div>
+              </ProtectedQuestionText>
               <p>پاسخ خود را انتخاب کنید. درست یا غلط بودن پاسخ تا پایان آزمون نمایش داده نمی‌شود.</p>
 
               <button
@@ -2675,7 +2693,7 @@ export default function App() {
 
               <h4>بررسی پاسخ‌ها</h4>
               {(examResult.questions || []).map((item, index) => (
-                <div key={item.id} style={{ ...styles.question, marginTop: "12px" }}>
+                <ProtectedQuestionText key={item.id} style={{ ...styles.question, marginTop: "12px" }}>
                   <p><b>سؤال {index + 1}:</b> {item.statement}</p>
                   <p>
                     <b>پاسخ شما:</b>{" "}
@@ -2693,7 +2711,7 @@ export default function App() {
                   {item.explanation && (
                     <p><b>توضیح:</b> {item.explanation}</p>
                   )}
-                </div>
+                </ProtectedQuestionText>
               ))}
 
               <button
@@ -2730,9 +2748,9 @@ export default function App() {
                 <>
                   <p>سؤال {reviewIndex + 1} از {reviewQueue.length} | باقی‌مانده برای اصلاح: {reviewRemaining.length}</p>
 
-                  <div style={styles.question}>
+                  <ProtectedQuestionText style={styles.question}>
                     {reviewQuestion.statement}
-                  </div>
+                  </ProtectedQuestionText>
 
                   {!reviewFeedback ? (
                     <>
@@ -2762,21 +2780,21 @@ export default function App() {
                     </>
                   ) : (
                     <>
-                      <h3 style={{
-                        color: reviewFeedback.correct ? "green" : "red"
-                      }}>
-                        {reviewFeedback.correct
-                          ? "آفرین! این سؤال از فهرست اشتباهات حذف شد."
-                          : "هنوز پاسخ صحیح نیست؛ سؤال در فهرست باقی می‌ماند."}
-                      </h3>
+                      <ProtectedQuestionText>
+                        <h3 style={{ color: reviewFeedback.correct ? "green" : "red" }}>
+                          {reviewFeedback.correct
+                            ? "آفرین! این سؤال از فهرست اشتباهات حذف شد."
+                            : "هنوز پاسخ صحیح نیست؛ سؤال در فهرست باقی می‌ماند."}
+                        </h3>
+                      </ProtectedQuestionText>
 
                       {!reviewFeedback.correct && (
-                        <div style={styles.question}>
+                        <ProtectedQuestionText style={styles.question}>
                           <p><b>پاسخ صحیح: {reviewFeedback.correctAnswer ? "درست" : "غلط"}</b></p>
                           <p>{reviewFeedback.correctAnswer
                             ? "این جمله صحیح است و نیازی به اصلاح ندارد."
                             : reviewFeedback.correction || "شکل صحیح جمله ثبت نشده است."}</p>
-                        </div>
+                        </ProtectedQuestionText>
                       )}
 
                       <button
