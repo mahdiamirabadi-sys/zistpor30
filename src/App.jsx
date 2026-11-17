@@ -1549,6 +1549,29 @@ export default function App() {
   }
 
 
+  // خروج از تمرین یا مرور، پاسخ‌های ذخیره‌شده را حذف نمی‌کند.
+  // خروج از آزمون با لغو امن جلسه در سمت سرور انجام می‌شود.
+  function cancelActivityAndReturnHome() {
+    if (answerSaving || examAnswerSaving || examSubmitting || answerLockRef.current) return;
+    if (screen === "exam") {
+      cancelExam();
+      return;
+    }
+    if (!window.confirm("فعالیت فعلی لغو شود و به صفحه اول بازگردید؟ پاسخ‌های ثبت‌شده محفوظ می‌مانند، اما ادامه این نوبت تمرین یا مرور از دست می‌رود.")) return;
+
+    setExerciseQuestions([]);
+    setCurrentIndex(0);
+    setResults([]);
+    setMistakes([]);
+    setFeedback(null);
+    setReviewRemaining([]);
+    setReviewQueue([]);
+    setReviewIndex(0);
+    setReviewFeedback(null);
+    setMessage("");
+    setScreen("setup");
+  }
+
   async function answerQuestion(selectedAnswer) {
     if (feedback || answerLockRef.current) return;
     const question = exerciseQuestions[currentIndex];
@@ -2430,7 +2453,9 @@ export default function App() {
 
         <section className="panel">
           <h2>خوش آمدید، {studentFullName(profile)}</h2>
-          <details className="student-identity-details"><summary>مشاهده یا ویرایش مشخصات من</summary><StudentIdentityForm profile={profile} onSaved={() => loadProfile(user.id)}/></details>
+          {screen === "setup" && (
+            <details className="student-identity-details"><summary>مشاهده یا ویرایش مشخصات من</summary><StudentIdentityForm profile={profile} onSaved={() => loadProfile(user.id)}/></details>
+          )}
 
           {showAccessCountdown && (
             <aside className="access-countdown" role="status" aria-live="polite">
@@ -2449,6 +2474,19 @@ export default function App() {
                 </p>
               </div>
             </aside>
+          )}
+
+          {(["exercise", "exam", "review"].includes(screen)) && (
+            <div className="student-activity-exit" style={{ display: "flex", justifyContent: "flex-start", margin: "8px 0 18px" }}>
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={cancelActivityAndReturnHome}
+                disabled={answerSaving || examAnswerSaving || examSubmitting}
+              >
+                لغو و بازگشت به صفحه اول
+              </button>
+            </div>
           )}
 
           {(screen === "setup" || screen === "report") && (
@@ -2826,14 +2864,7 @@ export default function App() {
                   </button>
                 )}
               </div>
-              <button
-                type="button"
-                style={{ ...styles.action, background: "#777", color: "white" }}
-                disabled={examAnswerSaving || examSubmitting}
-                onClick={cancelExam}
-              >
-                لغو آزمون
-              </button>
+
             </>
           )}
 
