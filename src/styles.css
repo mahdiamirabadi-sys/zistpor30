@@ -306,3 +306,13 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 700px) {
   .student-management-actions {width: 100%;}
 }
+
+/* چیدمان بازه زمانی دسترسی دانش‌آموزان در پنل دبیر */
+.student-access-row { flex-wrap: wrap; align-items: flex-start; }
+.student-access-row > p { flex: 1 1 180px; }
+.student-access-row > .student-management-actions { flex: 0 1 auto; }
+.student-access-row > form { flex: 1 0 100%; min-width: 0; }
+@media (max-width: 700px) {
+  .student-access-row > p { flex-basis: 100%; }
+  .student-access-row > .student-management-actions { width: 100%; }
+}

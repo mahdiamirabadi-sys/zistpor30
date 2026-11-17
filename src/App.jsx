@@ -294,6 +294,128 @@ function BulkExcelImport({ questions, onImported, disabled }) {
   );
 }
 
+// تاریخ‌های شمسی فقط در واسط کاربری استفاده می‌شوند؛ دیتابیس تاریخ میلادی ISO ذخیره می‌کند.
+const persianDayFormatter = new Intl.DateTimeFormat("en-US-u-ca-persian", {
+  timeZone: "UTC", year: "numeric", month: "numeric", day: "numeric"
+});
+const iranDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Tehran", year: "numeric", month: "2-digit", day: "2-digit"
+});
+
+function getDateParts(formatter, date) {
+  const values = Object.fromEntries(formatter.formatToParts(date)
+    .filter(p => ["year", "month", "day"].includes(p.type))
+    .map(p => [p.type, Number(p.value)]));
+  return [values.year, values.month, values.day];
+}
+
+function todayInIranISO() {
+  const [y, m, d] = getDateParts(iranDateFormatter, new Date());
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function gregorianISOToJalali(iso) {
+  if (!iso) return "";
+  const parts = String(iso).slice(0, 10).split("-").map(Number);
+  if (parts.length !== 3 || parts.some(v => !Number.isInteger(v))) return "";
+  const [year, month, day] = getDateParts(persianDayFormatter,
+    new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12)));
+  return `${year}/${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")}`;
+}
+
+function jalaliToGregorianISO(raw) {
+  const input = String(raw ?? "").trim()
+    .replace(/[۰-۹]/g, c => String("۰۱۲۳۴۵۶۷۸۹".indexOf(c)))
+    .replace(/[٠-٩]/g, c => String("٠١٢٣٤٥٦٧٨٩".indexOf(c)));
+  if (!input) return null; // محدودیت زمانی ندارد
+  const match = /^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/.exec(input);
+  if (!match) throw new Error("تاریخ را به شکل ۱۴۰۵/۰۹/۳۰ وارد کنید.");
+  const wanted = match.slice(1).map(Number);
+  const [y, m, d] = wanted;
+  if (y < 1300 || y > 1500 || m < 1 || m > 12 || d < 1 || d > 31) {
+    throw new Error("تاریخ شمسی واردشده معتبر نیست.");
+  }
+  // پیدا کردن روز میلادی متناظر با تاریخ شمسی؛ با تقویم رسمی Intl، بدون وابستگی جدید.
+  let low = Math.floor(Date.UTC(y + 620, 0, 1) / 86400000);
+  let high = Math.floor(Date.UTC(y + 623, 0, 1) / 86400000);
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    const found = getDateParts(persianDayFormatter, new Date(middle * 86400000 + 43200000));
+    const comparison = found[0] !== y ? found[0] - y : found[1] !== m ? found[1] - m : found[2] - d;
+    if (comparison === 0) return new Date(middle * 86400000).toISOString().slice(0, 10);
+    if (comparison < 0) low = middle + 1;
+    else high = middle - 1;
+  }
+  throw new Error("این روز در تقویم شمسی وجود ندارد.");
+}
+
+function studentAccessState(student, todayISO) {
+  if (!student.is_approved) return "pending";
+  if (student.access_start_date && todayISO < student.access_start_date) return "future";
+  if (student.access_end_date && todayISO > student.access_end_date) return "expired";
+  return "active";
+}
+
+function StudentAccessEditor({ student, onSave, disabled, todayISO }) {
+  const [startText, setStartText] = useState(() => gregorianISOToJalali(student.access_start_date));
+  const [endText, setEndText] = useState(() => gregorianISOToJalali(student.access_end_date));
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    setStartText(gregorianISOToJalali(student.access_start_date));
+    setEndText(gregorianISOToJalali(student.access_end_date));
+    setLocalError("");
+  }, [student.access_start_date, student.access_end_date]);
+
+  const status = studentAccessState(student, todayISO);
+  const statusTitle = {
+    pending: "در انتظار تأیید دبیر",
+    active: "دسترسی فعال",
+    future: "هنوز زمان دسترسی شروع نشده",
+    expired: "دوره دسترسی پایان یافته"
+  }[status];
+
+  function save(e) {
+    e.preventDefault();
+    setLocalError("");
+    try {
+      const start = jalaliToGregorianISO(startText);
+      const end = jalaliToGregorianISO(endText);
+      if (start && end && end < start) throw new Error("تاریخ پایان نباید قبل از شروع باشد.");
+      onSave(student.id, start, end);
+    } catch (error) {
+      setLocalError(error.message || "تاریخ نامعتبر است.");
+    }
+  }
+
+  return (
+    <form onSubmit={save} style={{ width: "100%", marginTop: "10px", padding: "12px", border: "1px solid #dce8e1", borderRadius: "12px", background: "#f8fbf9" }}>
+      <div style={{ marginBottom: "6px", fontWeight: 700 }}>
+        زمان دسترسی: <span style={{ color: status === "active" ? "#167451" : "#aa6526" }}>{statusTitle}</span>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "flex-end" }}>
+        <label style={{ flex: "1 1 145px", margin: 0 }}>
+          تاریخ شروع (شمسی)
+          <input type="text" inputMode="numeric" dir="ltr" aria-label={`تاریخ شروع ${student.display_name || "دانش‌آموز"}`}
+            placeholder="۱۴۰۵/۰۹/۰۱" value={startText} disabled={disabled}
+            onChange={e => setStartText(e.target.value)} style={{ display: "block", width: "100%", marginTop: "5px" }} />
+        </label>
+        <label style={{ flex: "1 1 145px", margin: 0 }}>
+          تاریخ پایان (شمسی)
+          <input type="text" inputMode="numeric" dir="ltr" aria-label={`تاریخ پایان ${student.display_name || "دانش‌آموز"}`}
+            placeholder="۱۴۰۵/۱۰/۳۰" value={endText} disabled={disabled}
+            onChange={e => setEndText(e.target.value)} style={{ display: "block", width: "100%", marginTop: "5px" }} />
+        </label>
+        <button type="submit" disabled={disabled} style={{ flex: "0 0 auto" }}>ذخیره دوره دسترسی</button>
+      </div>
+      <small style={{ display: "block", color: "#64766e", marginTop: "6px" }}>
+        تاریخ‌ها شامل همان روز نیز هستند؛ کادر خالی یعنی بدون محدودیت. برای تمدید، تاریخ پایان را تغییر دهید.
+      </small>
+      {localError && <p role="alert" style={{ margin: "4px 0 0", color: "#ad2424" }}>{localError}</p>}
+    </form>
+  );
+}
+
 export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -321,6 +443,8 @@ export default function App() {
   const [deletingArchivedQuestions, setDeletingArchivedQuestions] = useState(false);
   const [selectedArchivedQuestionIds, setSelectedArchivedQuestionIds] = useState([]);
   const [deletingStudentId, setDeletingStudentId] = useState(null);
+  const [savingStudentAccessId, setSavingStudentAccessId] = useState(null);
+  const [todayISO, setTodayISO] = useState(todayInIranISO);
   const [answerSaving, setAnswerSaving] = useState(false);
   const answerLockRef = useRef(false);
 
@@ -522,6 +646,25 @@ export default function App() {
     };
   }, []);
 
+  // به‌روز کردن روز جاری ایران؛ تا صفحه بازمانده پس از انقضا هم مسدود شود.
+  useEffect(() => {
+    const refresh = () => setTodayISO(todayInIranISO());
+    const interval = window.setInterval(refresh, 60000);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+
+  // اگر دبیر تاریخ‌ها را عوض کند، هنگام بازگشت دانش‌آموز به تب، پروفایل تازه شود.
+  useEffect(() => {
+    if (!user?.id || profile?.role !== "student") return;
+    const refreshProfile = () => { void loadProfile(user.id); };
+    window.addEventListener("focus", refreshProfile);
+    return () => window.removeEventListener("focus", refreshProfile);
+  }, [user?.id, profile?.role]);
+
   useEffect(() => {
     if (profile?.role === "teacher") {
       loadStudents();
@@ -532,11 +675,11 @@ export default function App() {
 
     if (
       profile?.role === "student" &&
-      profile?.is_approved === true
+      studentAccessState(profile, todayISO) === "active"
     ) {
       loadQuestions("student");
     }
-  }, [profile]);
+  }, [profile, todayISO]);
 
   async function authenticate(e) {
     e.preventDefault();
@@ -600,6 +743,26 @@ export default function App() {
     }
 
     setLoading(false);
+  }
+
+  async function saveStudentAccess(studentId, startDate, endDate) {
+    if (savingStudentAccessId || deletingStudentId) return;
+    setSavingStudentAccessId(String(studentId));
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("pz_set_student_access_dates", {
+        p_student_id: studentId,
+        p_access_start_date: startDate,
+        p_access_end_date: endDate
+      });
+      if (error) throw error;
+      await loadStudents();
+      setMessage("تاریخ شروع و پایان دسترسی دانش‌آموز ذخیره شد.");
+    } catch (error) {
+      setMessage("ذخیره دوره دسترسی انجام نشد: " + (error?.message || "خطای نامشخص"));
+    } finally {
+      setSavingStudentAccessId(null);
+    }
   }
 
   async function submitNewQuestion(e) {
@@ -1784,7 +1947,7 @@ export default function App() {
           {students.filter(s => !s.is_approved).length === 0
             ? <p>در حال حاضر دانش‌آموزی در انتظار تأیید نیست.</p>
             : students.filter(s => !s.is_approved).map(student => (
-              <div className="student" key={student.id}>
+              <div className="student student-access-row" key={student.id}>
                 <p>{student.display_name}</p>
                 <div className="student-management-actions">
                   <button
@@ -1802,6 +1965,11 @@ export default function App() {
                     {deletingStudentId === String(student.id) ? "در حال حذف..." : "حذف دانش‌آموز"}
                   </button>
                 </div>
+                <StudentAccessEditor
+                  student={student} todayISO={todayISO}
+                  disabled={loading || Boolean(deletingStudentId) || Boolean(savingStudentAccessId)}
+                  onSave={saveStudentAccess}
+                />
               </div>
             ))
           }
@@ -1809,7 +1977,7 @@ export default function App() {
           <h3>دانش‌آموزان تأییدشده</h3>
 
           {students.filter(s => s.is_approved).map(student => (
-            <div className="student" key={student.id}>
+            <div className="student student-access-row" key={student.id}>
               <p>{student.display_name}</p>
               <div className="student-management-actions">
                 <span>تأیید شده</span>
@@ -1822,6 +1990,11 @@ export default function App() {
                   {deletingStudentId === String(student.id) ? "در حال حذف..." : "حذف دانش‌آموز"}
                 </button>
               </div>
+              <StudentAccessEditor
+                student={student} todayISO={todayISO}
+                disabled={loading || Boolean(deletingStudentId) || Boolean(savingStudentAccessId)}
+                onSave={saveStudentAccess}
+              />
             </div>
           ))}
 
@@ -1841,6 +2014,31 @@ export default function App() {
           <h3>حساب شما در انتظار تأیید دبیر است.</h3>
           <p>پس از تأیید دبیر، امکان استفاده از تمرین‌ها برای شما فعال می‌شود.</p>
           <button onClick={logout}>خروج از حساب</button>
+        </section>
+      </main>
+    );
+  }
+
+  // تاریخ شروع و پایان در سمت سرور نیز روی همه عملیات تمرین/آزمون کنترل می‌شود.
+  if (profile.role === "student" && studentAccessState(profile, todayISO) !== "active" && profile.is_approved) {
+    const notStarted = studentAccessState(profile, todayISO) === "future";
+    return (
+      <main className="page" dir="rtl">
+        <header>
+          <div className="mark">ز</div>
+          <div><h1>پرسمان زیست</h1><p>وضعیت دسترسی دانش‌آموز</p></div>
+        </header>
+        <section className="panel">
+          <h2>{notStarted ? "زمان دسترسی شما هنوز شروع نشده است" : "مدت دسترسی شما به پایان رسیده است"}</h2>
+          <p>
+            {notStarted ? "برای آغاز دوره آموزشی، منتظر تاریخ شروع تعیین‌شده توسط دبیر باشید." :
+              "برای تمدید دوره دسترسی، با دبیر یا پشتیبان سامانه هماهنگ کنید."}
+          </p>
+          <p>شروع دوره: {gregorianISOToJalali(profile.access_start_date) || "بدون محدودیت"}</p>
+          <p>پایان دوره: {gregorianISOToJalali(profile.access_end_date) || "بدون محدودیت"}</p>
+          <p>پاسخ‌ها و کارنامه‌های قبلی شما حذف نشده‌اند.</p>
+          <button type="button" onClick={() => loadProfile(user.id)}>بررسی مجدد وضعیت دسترسی</button>{" "}
+          <button type="button" onClick={logout}>خروج از حساب</button>
         </section>
       </main>
     );
