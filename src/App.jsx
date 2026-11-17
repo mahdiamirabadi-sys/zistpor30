@@ -576,6 +576,9 @@ export default function App() {
   const [todayISO, setTodayISO] = useState(todayInIranISO);
   const [answerSaving, setAnswerSaving] = useState(false);
   const answerLockRef = useRef(false);
+  // جلوگیری از نمایش خطا/اطلاعات درخواست‌های قدیمی پس از خروج از حساب.
+  const authEpochRef = useRef(0);
+  const questionsRequestRef = useRef(0);
 
   // جست‌وجوی سؤال‌ها در پنل دبیر
   const [questionSearch, setQuestionSearch] = useState("");
@@ -615,12 +618,14 @@ export default function App() {
   const [savingQuestion, setSavingQuestion] = useState(false);
 
   async function loadProfile(userId) {
+    const epoch = authEpochRef.current;
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
 
+    if (epoch !== authEpochRef.current) return;
     if (error) {
       setMessage("خطا در دریافت اطلاعات حساب: " + error.message);
       setProfile(null);
@@ -631,12 +636,14 @@ export default function App() {
   }
 
   async function loadStudents() {
+    const epoch = authEpochRef.current;
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("role", "student")
       .order("created_at", { ascending: false });
 
+    if (epoch !== authEpochRef.current) return;
     if (error) {
       setMessage("خطا در دریافت دانش‌آموزان: " + error.message);
       return;
@@ -646,6 +653,9 @@ export default function App() {
   }
 
   async function loadQuestions(role = profile?.role) {
+    const epoch = authEpochRef.current;
+    const requestId = ++questionsRequestRef.current;
+    const stillCurrent = () => epoch === authEpochRef.current && requestId === questionsRequestRef.current;
     setQuestionsLoading(true);
     try {
       const rows = [];
@@ -668,16 +678,19 @@ export default function App() {
           String(b.question_code ?? ""), "fa", { numeric: true }
         )
       );
-      setQuestions(rows);
+      if (stillCurrent()) setQuestions(rows);
     } catch (error) {
-      setMessage("خطا در دریافت سؤال‌ها: " + error.message);
-      setQuestions([]);
+      if (stillCurrent()) {
+        setMessage("خطا در دریافت سؤال‌ها: " + error.message);
+        setQuestions([]);
+      }
     } finally {
-      setQuestionsLoading(false);
+      if (stillCurrent()) setQuestionsLoading(false);
     }
   }
 
   async function loadAttempts() {
+    const epoch = authEpochRef.current;
     setAttemptsLoading(true);
     const all = [];
     const batchSize = 1000;
@@ -696,16 +709,19 @@ export default function App() {
         if (batch.length < batchSize) break;
         from += batchSize;
       }
-      setAttempts(all);
+      if (epoch === authEpochRef.current) setAttempts(all);
     } catch (error) {
-      setAttempts([]);
-      setMessage("خطا در دریافت گزارش پاسخ‌ها: " + error.message);
+      if (epoch === authEpochRef.current) {
+        setAttempts([]);
+        setMessage("خطا در دریافت گزارش پاسخ‌ها: " + error.message);
+      }
     } finally {
-      setAttemptsLoading(false);
+      if (epoch === authEpochRef.current) setAttemptsLoading(false);
     }
   }
 
   async function loadExamSessions() {
+    const epoch = authEpochRef.current;
     setExamSessionsLoading(true);
     try {
       const { data, error } = await supabase
@@ -715,12 +731,14 @@ export default function App() {
         .limit(1000);
 
       if (error) throw error;
-      setExamSessions(data || []);
+      if (epoch === authEpochRef.current) setExamSessions(data || []);
     } catch (error) {
-      setExamSessions([]);
-      setMessage("خطا در دریافت گزارش آزمون‌ها: " + error.message);
+      if (epoch === authEpochRef.current) {
+        setExamSessions([]);
+        setMessage("خطا در دریافت گزارش آزمون‌ها: " + error.message);
+      }
     } finally {
-      setExamSessionsLoading(false);
+      if (epoch === authEpochRef.current) setExamSessionsLoading(false);
     }
   }
 
@@ -739,6 +757,19 @@ export default function App() {
           if (mounted) loadProfile(session.user.id);
         }, 0);
       } else {
+        // با قطع نشست، نتیجه درخواست‌های قبلی دیگر نباید صفحه ورود را تغییر دهد.
+        authEpochRef.current += 1;
+        questionsRequestRef.current += 1;
+        setEmail("");
+        setPassword("");
+        setSignupFirstName("");
+        setSignupLastName("");
+        setSignupMobile("");
+        setMode("login");
+        setMessage("");
+        setQuestionsLoading(false);
+        setAttemptsLoading(false);
+        setExamSessionsLoading(false);
         setProfile(null);
         setStudents([]);
         setQuestions([]);
@@ -915,6 +946,7 @@ export default function App() {
             }
           }
           await loadProfile(data.user.id);
+          setPassword("");
           setMessage("ورود موفقیت‌آمیز بود.");
         }
       }
@@ -1165,11 +1197,14 @@ export default function App() {
   }
 
   async function logout() {
-    const { error } = await supabase.auth.signOut();
+    // از همین لحظه هیچ پاسخِ دیررسِ حساب قبلی نباید روی فرم ورود اثر بگذارد.
+    authEpochRef.current += 1;
+    questionsRequestRef.current += 1;
+    setMessage("");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
 
-    if (error) {
-      setMessage(error.message);
-    } else {
       setUser(null);
       setProfile(null);
       setStudents([]);
@@ -1181,7 +1216,18 @@ export default function App() {
       setExamAnswers({});
       setExamResult(null);
       setScreen("setup");
+      setMode("login");
+      setEmail("");
+      setPassword("");
+      setSignupFirstName("");
+      setSignupLastName("");
+      setSignupMobile("");
+      setQuestionsLoading(false);
+      setAttemptsLoading(false);
+      setExamSessionsLoading(false);
       setMessage("");
+    } catch (error) {
+      setMessage("خروج از حساب انجام نشد: " + (error?.message || "خطای ارتباطی"));
     }
   }
 
@@ -1598,11 +1644,12 @@ export default function App() {
             {mode === "login" ? "ورود به سامانه" : "ثبت‌نام دانش‌آموز"}
           </h2>
 
-          <form onSubmit={authenticate}>
+          <form onSubmit={authenticate} autoComplete="off">
             <label>
               ایمیل
               <input
                 type="email"
+                autoComplete="off"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -1613,6 +1660,7 @@ export default function App() {
               گذرواژه
               <input
                 type="password"
+                autoComplete="off"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 minLength={6}
