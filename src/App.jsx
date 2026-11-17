@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import TeacherAnalytics from "./TeacherAnalytics";
+import StudentReport from "./StudentReport";
 
 const styles = {
   select: {
@@ -2125,7 +2126,12 @@ export default function App() {
           <p>پایان دوره: {gregorianISOToJalali(profile.access_end_date) || "بدون محدودیت"}</p>
           <p>پاسخ‌ها و کارنامه‌های قبلی شما حذف نشده‌اند.</p>
           <button type="button" onClick={() => loadProfile(user.id)}>بررسی مجدد وضعیت دسترسی</button>{" "}
+          <button type="button" onClick={() => setScreen(current => current === "report" ? "setup" : "report")}>{screen === "report" ? "بستن کارنامه" : "مشاهده کارنامه قبلی"}</button>{" "}
           <button type="button" onClick={logout}>خروج از حساب</button>
+          {screen === "report" && <StudentReport
+            studentId={user.id} studentName={profile.display_name} todayISO={todayISO}
+            onBack={() => setScreen("setup")}
+          />}
         </section>
       </main>
     );
@@ -2180,6 +2186,22 @@ export default function App() {
               </div>
             </aside>
           )}
+
+          {(screen === "setup" || screen === "report") && (
+            <nav className="student-report-nav" aria-label="بخش‌های پنل دانش‌آموز">
+              <button type="button" className={screen === "setup" ? "is-active" : ""}
+                aria-current={screen === "setup" ? "page" : undefined}
+                onClick={() => setScreen("setup")}>تمرین و آزمون</button>
+              <button type="button" className={screen === "report" ? "is-active" : ""}
+                aria-current={screen === "report" ? "page" : undefined}
+                onClick={() => setScreen("report")}>کارنامه هوشمند من</button>
+            </nav>
+          )}
+
+          {screen === "report" && <StudentReport
+            studentId={user.id} studentName={profile.display_name} todayISO={todayISO}
+            onBack={() => setScreen("setup")}
+          />}
 
           {screen === "setup" && (
             <>
